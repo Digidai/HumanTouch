@@ -1,0 +1,295 @@
+{
+  "info": {
+    "name": "HumanTouch API",
+    "description": "AI内容人性化处理系统API集合",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secure_password_123\",\n  \"name\": \"张三\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth"]
+            }
+          }
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secure_password_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Content Processing",
+      "item": [
+        {
+          "name": "Process Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"人工智能生成的文本通常具有高度的逻辑性和一致性，缺乏人类写作中的随机性和个性化特征。\",\n  \"options\": {\n    \"rounds\": 3,\n    \"style\": \"casual\",\n    \"target_score\": 0.1\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/process",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "process"]
+            }
+          }
+        },
+        {
+          "name": "Batch Process",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"texts\": [\n    \"AI生成的文本往往缺乏人类写作的自然特征。\",\n    \"机器学习模型在语言生成方面表现出色，但仍有明显的AI痕迹。\"\n  ],\n  \"options\": {\n    \"rounds\": 2,\n    \"style\": \"casual\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/batch",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "batch"]
+            }
+          }
+        },
+        {
+          "name": "Get Batch Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/batch",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "batch"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Async Processing",
+      "item": [
+        {
+          "name": "Create Async Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"这是一个需要异步处理的较长文本，我们将使用多轮处理来确保最终结果的AI检测分数低于目标值。\",\n  \"options\": {\n    \"rounds\": 3,\n    \"style\": \"creative\",\n    \"notify_url\": \"https://your-webhook.com/callback\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/async",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "async"]
+            }
+          }
+        },
+        {
+          "name": "Get Task Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/status/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "status", "{{task_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Task List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks?status=completed&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "completed"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clean Tasks",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks?older_than=86400000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [
+                {
+                  "key": "older_than",
+                  "value": "86400000"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Detection",
+      "item": [
+        {
+          "name": "Validate Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"这是一个需要检测的文本样本，用于测试AI检测工具的效果。\",\n  \"detectors\": [\"zerogpt\", \"gptzero\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/validate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "validate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Configuration",
+      "item": [
+        {
+          "name": "Get Async Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/async",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "async"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.humantouch.dev",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your_api_key_here",
+      "type": "string"
+    },
+    {
+      "key": "task_id",
+      "value": "task_123456789",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,828 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HumanTouch API",
+    "description": "AI内容人性化处理系统 - 将AI生成的文本转换为更自然的人类写作风格，有效规避AI检测工具。",
+    "version": "1.0.0",
+    "contact": {
+      "name": "HumanTouch Support",
+      "email": "support@humantouch.dev"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.humantouch.dev",
+      "description": "生产环境"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "本地开发环境"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "用户注册和获取API密钥",
+        "description": "注册新用户并获取API访问密钥，用于后续API调用认证。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/RegisterRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/LoginRequest"
+                  }
+                ]
+              },
+              "examples": {
+                "register": {
+                  "summary": "用户注册示例",
+                  "value": {
+                    "email": "user@example.com",
+                    "password": "secure_password_123",
+                    "name": "张三"
+                  }
+                },
+                "login": {
+                  "summary": "用户登录示例",
+                  "value": {
+                    "email": "user@example.com",
+                    "password": "secure_password_123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "认证成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/process": {
+      "post": {
+        "tags": ["Content Processing"],
+        "summary": "同步内容处理",
+        "description": "将AI生成的文本转换为更自然的人类写作风格，实时返回处理结果。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "基础处理示例",
+                  "value": {
+                    "text": "人工智能生成的文本通常具有高度的逻辑性和一致性...",
+                    "options": {
+                      "rounds": 3,
+                      "style": "casual",
+                      "target_score": 0.1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "处理成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/batch": {
+      "post": {
+        "tags": ["Content Processing"],
+        "summary": "批量内容处理",
+        "description": "同时处理多个文本，提高处理效率。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量处理成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Content Processing"],
+        "summary": "获取批量处理配置信息",
+        "description": "获取批量处理的相关配置限制和参数说明。",
+        "responses": {
+          "200": {
+            "description": "配置信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/async": {
+      "post": {
+        "tags": ["Async Processing"],
+        "summary": "创建异步任务",
+        "description": "创建异步处理任务，适合处理大量文本或长时间运行的任务。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsyncTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "任务已接受",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncTaskResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Async Processing"],
+        "summary": "获取异步任务配置",
+        "description": "获取异步任务的相关配置和限制信息。",
+        "responses": {
+          "200": {
+            "description": "配置信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status/{taskId}": {
+      "get": {
+        "tags": ["Async Processing"],
+        "summary": "查询任务状态",
+        "description": "查询异步任务的处理状态和结果。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "任务ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "任务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "tags": ["Async Processing"],
+        "summary": "获取任务列表",
+        "description": "获取用户的任务列表，支持分页和状态过滤。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "completed", "failed"]
+            },
+            "description": "任务状态过滤"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "description": "返回结果数量限制"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "分页偏移量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "任务列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/validate": {
+      "post": {
+        "tags": ["Detection"],
+        "summary": "AI检测验证",
+        "description": "使用多个AI检测工具验证文本的AI检测分数。",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "检测结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["email", "password", "name"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "用户邮箱"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "description": "密码（至少8位）"
+          },
+          "name": {
+            "type": "string",
+            "description": "用户名"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "api_key": {
+                "type": "string",
+                "description": "API密钥"
+              },
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProcessRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 10000,
+            "description": "需要处理的文本内容"
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "rounds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "default": 3,
+                "description": "处理轮数"
+              },
+              "style": {
+                "type": "string",
+                "enum": ["academic", "casual", "professional", "creative"],
+                "default": "casual",
+                "description": "写作风格"
+              },
+              "target_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.1,
+                "description": "目标AI检测分数"
+              },
+              "preserve_formatting": {
+                "type": "boolean",
+                "default": false,
+                "description": "是否保留原始格式"
+              }
+            }
+          }
+        }
+      },
+      "ProcessResponse": {
+        "type": "object",
+        "properties": {
+          "processed_text": {
+            "type": "string",
+            "description": "处理后的文本"
+          },
+          "original_length": {
+            "type": "integer",
+            "description": "原始文本长度"
+          },
+          "processed_length": {
+            "type": "integer",
+            "description": "处理后文本长度"
+          },
+          "detection_scores": {
+            "type": "object",
+            "properties": {
+              "zerogpt": {
+                "type": "number",
+                "description": "ZeroGPT检测分数"
+              },
+              "gptzero": {
+                "type": "number",
+                "description": "GPTZero检测分数"
+              },
+              "copyleaks": {
+                "type": "number",
+                "description": "Copyleaks检测分数"
+              }
+            }
+          },
+          "processing_time": {
+            "type": "number",
+            "description": "处理耗时（秒）"
+          },
+          "rounds_used": {
+            "type": "integer",
+            "description": "实际使用的处理轮数"
+          }
+        }
+      },
+      "BatchRequest": {
+        "type": "object",
+        "required": ["texts"],
+        "properties": {
+          "texts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 10000
+            },
+            "minItems": 1,
+            "maxItems": 10,
+            "description": "文本数组"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ProcessOptions"
+          }
+        }
+      },
+      "BatchResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProcessResponse"
+            }
+          },
+          "total_processed": {
+            "type": "integer"
+          },
+          "total_time": {
+            "type": "number"
+          }
+        }
+      },
+      "ProcessOptions": {
+        "type": "object",
+        "properties": {
+          "rounds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 2
+          },
+          "style": {
+            "type": "string",
+            "enum": ["academic", "casual", "professional", "creative"],
+            "default": "casual"
+          }
+        }
+      },
+      "AsyncTaskRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 10000
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "rounds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "default": 3
+              },
+              "style": {
+                "type": "string",
+                "enum": ["academic", "casual", "professional", "creative"],
+                "default": "casual"
+              },
+              "notify_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "webhook通知URL"
+              }
+            }
+          }
+        }
+      },
+      "AsyncTaskResponse": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "任务ID"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "completed", "failed"]
+          },
+          "estimated_time": {
+            "type": "integer",
+            "description": "预估处理时间（秒）"
+          }
+        }
+      },
+      "TaskStatusResponse": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ProcessResponse"
+          },
+          "error": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TaskListResponse": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "task_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "text_preview": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "has_more": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "ValidateRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 10000
+          },
+          "detectors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["zerogpt", "gptzero", "copyleaks"]
+            },
+            "description": "使用的检测工具"
+          }
+        }
+      },
+      "ValidateResponse": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "detection_scores": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "overall_score": {
+                "type": "number"
+              },
+              "human_likelihood": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "ConfigResponse": {
+        "type": "object",
+        "properties": {
+          "max_text_length": {
+            "type": "integer"
+          },
+          "supported_styles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default_rounds": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "认证失败",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "请求频率限制",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "资源未找到",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

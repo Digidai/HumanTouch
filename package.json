@@ -1,0 +1,39 @@
+{
+  "name": "humantouch",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "deploy": "vercel --prod",
+    "test": "node test-api.js",
+    "test-async": "node test-async.js"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.427.0",
+    "next": "15.4.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-hook-form": "^7.52.2",
+    "react-hot-toast": "^2.4.1",
+    "recharts": "^2.12.7",
+    "swr": "^2.2.5"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.1",
+    "postcss": "^8",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vercel": "^44.4.3"
+  }
+}
