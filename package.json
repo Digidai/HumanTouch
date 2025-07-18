@@ -22,9 +22,6 @@
     "recharts": "^2.12.7",
     "swr": "^2.2.5"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",

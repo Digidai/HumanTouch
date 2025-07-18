@@ -16,7 +16,8 @@
       "Bash(git remote:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
