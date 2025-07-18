@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     if (authResult) return authResult;
 
     const url = new URL(request.url);
-    const statusFilter = url.searchParams.get('status') as 'pending' | 'processing' | 'completed' | 'failed' | null;
+    const statusParam = url.searchParams.get('status');
+    const statusFilter = statusParam && ['pending', 'processing', 'completed', 'failed'].includes(statusParam) ? statusParam as 'pending' | 'processing' | 'completed' | 'failed' : null;
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
@@ -96,7 +97,6 @@ export async function DELETE(request: NextRequest) {
     if (authResult) return authResult;
 
     const url = new URL(request.url);
-    const statusFilter = url.searchParams.get('status') as 'completed' | 'failed' | null;
     const olderThan = parseInt(url.searchParams.get('older_than') || '86400000'); // 默认24小时
 
     // 清理任务逻辑

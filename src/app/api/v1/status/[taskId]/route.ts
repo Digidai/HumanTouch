@@ -8,7 +8,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
-  const { taskId } = await params;
+  const taskId = (await params).taskId;
   const requestId = Math.random().toString(36).substring(2, 15);
 
   try {
@@ -19,8 +19,6 @@ export async function GET(
     // 应用认证中间件
     const authResult = await createAuthMiddleware(['process', 'status'])(request);
     if (authResult) return authResult;
-
-    const { taskId } = await params;
 
     if (!taskId) {
       return NextResponse.json(
@@ -110,7 +108,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
-  const { taskId } = await params;
+  const taskId = (await params).taskId;
   const requestId = Math.random().toString(36).substring(2, 15);
 
   try {
