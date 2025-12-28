@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background Circle -->
+  <circle cx="60" cy="60" r="56" fill="url(#grad1)" opacity="0.1"/>
+  <circle cx="60" cy="60" r="56" stroke="url(#grad1)" stroke-width="2" fill="none"/>
+  
+  <!-- Hand Icon (Human Touch) -->
+  <path d="M45 75 L45 50 Q45 42 52 42 Q59 42 59 50 L59 55 L59 45 Q59 37 66 37 Q73 37 73 45 L73 55 L73 48 Q73 40 80 40 Q87 40 87 48 L87 65 Q87 85 67 85 L55 85 Q45 85 45 75Z" 
+        fill="url(#grad2)" opacity="0.9"/>
+  
+  <!-- Sparkle Effects -->
+  <circle cx="35" cy="35" r="3" fill="#F59E0B"/>
+  <circle cx="90" cy="30" r="2" fill="#EC4899"/>
+  <circle cx="95" cy="70" r="2.5" fill="#10B981"/>
+  
+  <!-- AI to Human Arrow -->
+  <path d="M30 60 L25 55 M30 60 L25 65 M30 60 L40 60" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

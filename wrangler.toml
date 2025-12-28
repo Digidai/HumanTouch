@@ -7,15 +7,37 @@ compatibility_flags = ["nodejs_compat"]
 API_KEY_PREFIX = "hk_"
 MAX_TEXT_LENGTH = "10000"
 DETECTOR_MODE = "mock"
+SITE_URL = "https://humantouch.dev"
 
-# 生产环境需要配置的 secrets (使用 wrangler secret put 命令):
-# - MOONSHOT_API_KEY
-# - JWT_SECRET
-# - ALLOWED_API_KEYS
-# - ZEROGPT_API_KEY (可选)
-# - GPTZERO_API_KEY (可选)
-# - COPYLEAKS_API_KEY (可选)
-# - WEBHOOK_SECRET (可选)
+# ============================================
+# Secrets 配置说明 (使用 wrangler secret put 命令)
+# ============================================
+#
+# LLM 提供商 (三选一):
+#
+# 方式一: Moonshot
+#   wrangler secret put MOONSHOT_API_KEY
+#
+# 方式二: OpenRouter (推荐，支持多模型)
+#   wrangler secret put OPENROUTER_API_KEY
+#   可选: OPENROUTER_MODEL (默认 anthropic/claude-sonnet-4)
+#
+# 方式三: 自定义 OpenAI 兼容 API
+#   wrangler secret put CUSTOM_LLM_API_KEY
+#   wrangler secret put CUSTOM_LLM_BASE_URL
+#   可选: CUSTOM_LLM_MODEL
+#
+# 认证 (生产环境必需):
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put ALLOWED_API_KEYS
+#
+# AI 检测器 (可选):
+#   wrangler secret put ZEROGPT_API_KEY
+#   wrangler secret put GPTZERO_API_KEY
+#   wrangler secret put COPYLEAKS_API_KEY
+#
+# Webhook (可选):
+#   wrangler secret put WEBHOOK_SECRET
 
 [build]
 command = ""

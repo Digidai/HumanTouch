@@ -1,5 +1,5 @@
 import { Env, authMiddleware, jsonResponse } from './lib/auth';
-import { MoonshotClient } from './lib/moonshot';
+import { LLMClient, PRESET_MODELS } from './lib/llm-client';
 import { DetectorClient } from './lib/detectors';
 
 interface ProcessRequest {
@@ -8,6 +8,7 @@ interface ProcessRequest {
     rounds?: number;
     style?: string;
     target_score?: number;
+    model?: string;
   };
 }
 
@@ -123,11 +124,12 @@ async function handleProcess(request: Request, env: Env): Promise<Response> {
   }
 
   try {
-    const client = new MoonshotClient(env);
+    const client = new LLMClient(env);
     const result = await client.processText(body.text, {
       rounds: body.options?.rounds || 3,
       style: body.options?.style || 'casual',
       targetScore: body.options?.target_score,
+      model: body.options?.model,
     });
 
     const processingTime = (Date.now() - startTime) / 1000;
@@ -141,6 +143,8 @@ async function handleProcess(request: Request, env: Env): Promise<Response> {
         detection_scores: result.detectionScores,
         processing_time: processingTime,
         rounds_used: body.options?.rounds || 3,
+        model_used: result.model,
+        provider: result.provider,
       },
       meta: {
         request_id: requestId,

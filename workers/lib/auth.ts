@@ -2,10 +2,21 @@ export interface Env {
   JWT_SECRET?: string;
   API_KEY_PREFIX?: string;
   ALLOWED_API_KEYS?: string;
+  // Moonshot
   MOONSHOT_API_KEY?: string;
   MOONSHOT_MODEL?: string;
+  // OpenRouter
+  OPENROUTER_API_KEY?: string;
+  OPENROUTER_MODEL?: string;
+  // Custom LLM
+  CUSTOM_LLM_API_KEY?: string;
+  CUSTOM_LLM_BASE_URL?: string;
+  CUSTOM_LLM_MODEL?: string;
+  // General
   MAX_TEXT_LENGTH?: string;
   DETECTOR_MODE?: string;
+  SITE_URL?: string;
+  // Detectors
   ZEROGPT_API_KEY?: string;
   GPTZERO_API_KEY?: string;
   COPYLEAKS_API_KEY?: string;

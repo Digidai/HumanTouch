@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { moonshotClient } from '@/lib/moonshot';
+import { LLMClient } from '@/lib/llm-client';
 import { createAuthMiddleware } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse, ApiResponse } from '@/types/api';
@@ -63,12 +63,17 @@ export async function POST(request: NextRequest) {
 
     const rounds = body.options?.rounds || 3;
     const style = body.options?.style || 'casual';
+    const model = body.options?.model;
+
+    // 创建 LLM 客户端（支持动态选择模型）
+    const llmClient = new LLMClient();
 
     // 处理文本
-    const result = await moonshotClient.processText(text, {
+    const result = await llmClient.processText(text, {
       rounds,
       style,
       targetScore: body.options?.target_score,
+      model,
     });
     
     // 获取真实检测分数
@@ -85,6 +90,8 @@ export async function POST(request: NextRequest) {
         detection_scores: detectionScores,
         processing_time: processingTime,
         rounds_used: rounds,
+        model_used: result.model,
+        provider: result.provider,
       },
       meta: {
         request_id: requestId,

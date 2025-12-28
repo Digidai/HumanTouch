@@ -21,6 +21,7 @@ export interface ProcessRequest {
     style?: 'academic' | 'casual' | 'professional' | 'creative';
     target_score?: number;
     preserve_formatting?: boolean;
+    model?: string; // 自定义模型，如 "openai/gpt-4o" 或 "anthropic/claude-sonnet-4"
   };
 }
 
@@ -35,6 +36,8 @@ export interface ProcessResponse {
   };
   processing_time: number;
   rounds_used: number;
+  model_used?: string;  // 实际使用的模型
+  provider?: string;    // 提供商: moonshot, openrouter, custom
 }
 
 export interface BatchRequest {

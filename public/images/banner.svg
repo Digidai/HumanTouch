@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="50%" style="stop-color:#1E293B"/>
+      <stop offset="100%" style="stop-color:#0F172A"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B82F6"/>
+      <stop offset="50%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981"/>
+      <stop offset="100%" style="stop-color:#3B82F6"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bgGrad)"/>
+  
+  <!-- Grid Pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.5" opacity="0.3"/>
+  </pattern>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  
+  <!-- Decorative Circles -->
+  <circle cx="100" cy="100" r="200" fill="#3B82F6" opacity="0.05"/>
+  <circle cx="1180" cy="540" r="250" fill="#8B5CF6" opacity="0.05"/>
+  <circle cx="640" cy="320" r="300" fill="#10B981" opacity="0.03"/>
+  
+  <!-- Logo -->
+  <g transform="translate(540, 180)">
+    <circle cx="100" cy="100" r="80" fill="url(#accentGrad)" opacity="0.15"/>
+    <circle cx="100" cy="100" r="80" stroke="url(#accentGrad)" stroke-width="3" fill="none"/>
+    <path d="M75 130 L75 95 Q75 83 85 83 Q95 83 95 95 L95 102 L95 88 Q95 76 105 76 Q115 76 115 88 L115 102 L115 92 Q115 80 125 80 Q135 80 135 92 L135 115 Q135 145 108 145 L90 145 Q75 145 75 130Z" 
+          fill="url(#accentGrad)" opacity="0.9"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="640" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="bold" fill="url(#textGrad)">
+    HumanTouch
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="640" y="480" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94A3B8">
+    Transform AI Text into Natural Human Writing
+  </text>
+  
+  <!-- Tags -->
+  <g transform="translate(380, 520)">
+    <rect x="0" y="0" width="120" height="36" rx="18" fill="#3B82F6" opacity="0.2"/>
+    <text x="60" y="24" text-anchor="middle" font-family="system-ui" font-size="14" fill="#60A5FA">Next.js 15</text>
+  </g>
+  <g transform="translate(520, 520)">
+    <rect x="0" y="0" width="100" height="36" rx="18" fill="#8B5CF6" opacity="0.2"/>
+    <text x="50" y="24" text-anchor="middle" font-family="system-ui" font-size="14" fill="#A78BFA">TypeScript</text>
+  </g>
+  <g transform="translate(640, 520)">
+    <rect x="0" y="0" width="140" height="36" rx="18" fill="#F59E0B" opacity="0.2"/>
+    <text x="70" y="24" text-anchor="middle" font-family="system-ui" font-size="14" fill="#FBBF24">Cloudflare</text>
+  </g>
+  <g transform="translate(800, 520)">
+    <rect x="0" y="0" width="100" height="36" rx="18" fill="#10B981" opacity="0.2"/>
+    <text x="50" y="24" text-anchor="middle" font-family="system-ui" font-size="14" fill="#34D399">Open Source</text>
+  </g>
+  
+  <!-- Sparkles -->
+  <circle cx="200" cy="200" r="4" fill="#F59E0B" opacity="0.8"/>
+  <circle cx="1100" cy="150" r="3" fill="#EC4899" opacity="0.8"/>
+  <circle cx="150" cy="450" r="3" fill="#10B981" opacity="0.8"/>
+  <circle cx="1150" cy="400" r="4" fill="#3B82F6" opacity="0.8"/>
+</svg>
