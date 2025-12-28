@@ -99,11 +99,6 @@ export function TextProcessor() {
       return;
     }
 
-    if (!apiKey) {
-      setFieldError('请先在顶部设置 API Key');
-      return;
-    }
-
     setFieldError(null);
     setProgress(0);
 
@@ -160,7 +155,7 @@ export function TextProcessor() {
             onChange={(e) => setText(e.target.value)}
             rows={8}
             maxLength={10000}
-            disabled={loading || !apiKey}
+            disabled={loading}
           />
           <div className="flex justify-between items-center text-sm">
             <span className={fieldError ? 'text-red-500' : 'text-[var(--stone-500)]'}>

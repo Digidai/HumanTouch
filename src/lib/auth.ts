@@ -140,9 +140,14 @@ export function createAuthMiddleware(requiredPermissions: string[] = []) {
   return async (request: NextRequest) => {
     const token = extractAuthToken(request);
 
+    // 如果没有提供 token，检查服务端是否配置了 API Key
     if (!token) {
+      // 服务端配置了 OPENROUTER_API_KEY，允许匿名请求
+      if (process.env.OPENROUTER_API_KEY) {
+        return null; // 允许请求，使用服务端配置的 API Key
+      }
       return NextResponse.json(
-        { error: { code: 'INVALID_API_KEY', message: 'API密钥缺失' } },
+        { error: { code: 'INVALID_API_KEY', message: 'API密钥缺失，请配置 OPENROUTER_API_KEY 或在页面输入您的 API Key' } },
         { status: 401, headers: corsHeaders }
       );
     }
