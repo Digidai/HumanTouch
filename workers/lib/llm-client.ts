@@ -53,7 +53,7 @@ export class LLMClient {
     if (env.OPENROUTER_API_KEY) return 'openrouter';
     if (env.MOONSHOT_API_KEY) return 'moonshot';
     if (env.CUSTOM_LLM_API_KEY && env.CUSTOM_LLM_BASE_URL) return 'custom';
-    return 'moonshot';
+    return 'openrouter'; // 默认使用 OpenRouter
   }
 
   private getApiKey(env: Env): string {

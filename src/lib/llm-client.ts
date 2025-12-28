@@ -86,7 +86,7 @@ export class LLMClient {
     if (process.env.OPENROUTER_API_KEY) return 'openrouter';
     if (process.env.MOONSHOT_API_KEY) return 'moonshot';
     if (process.env.CUSTOM_LLM_API_KEY && process.env.CUSTOM_LLM_BASE_URL) return 'custom';
-    return 'moonshot'; // 默认
+    return 'openrouter'; // 默认使用 OpenRouter
   }
 
   private getApiKey(): string {
@@ -111,7 +111,7 @@ export class LLMClient {
       case 'custom':
         return process.env.CUSTOM_LLM_MODEL || 'gpt-4';
       default:
-        return 'kimi-k2-0711-preview';
+        return 'google/gemini-2.5-flash-preview';
     }
   }
 
