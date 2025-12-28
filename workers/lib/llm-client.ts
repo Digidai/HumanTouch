@@ -3,21 +3,6 @@ import { DetectorClient } from './detectors';
 
 export type LLMProvider = 'moonshot' | 'openrouter' | 'custom';
 
-export const PRESET_MODELS = {
-  moonshot: [
-    { id: 'kimi-k2-0711-preview', name: 'Kimi K2 Preview', provider: 'moonshot' },
-    { id: 'moonshot-v1-8k', name: 'Moonshot V1 8K', provider: 'moonshot' },
-    { id: 'moonshot-v1-32k', name: 'Moonshot V1 32K', provider: 'moonshot' },
-  ],
-  openrouter: [
-    { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'openrouter' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openrouter' },
-    { id: 'google/gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'openrouter' },
-    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', provider: 'openrouter' },
-    { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', provider: 'openrouter' },
-  ],
-} as const;
-
 const PROVIDER_CONFIG: Record<LLMProvider, { baseUrl: string }> = {
   moonshot: { baseUrl: 'https://api.moonshot.cn/v1' },
   openrouter: { baseUrl: 'https://openrouter.ai/api/v1' },

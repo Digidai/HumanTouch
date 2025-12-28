@@ -1,5 +1,5 @@
 import { Env, authMiddleware, jsonResponse } from './lib/auth';
-import { LLMClient, PRESET_MODELS } from './lib/llm-client';
+import { LLMClient } from './lib/llm-client';
 import { DetectorClient } from './lib/detectors';
 
 interface ProcessRequest {

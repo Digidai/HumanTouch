@@ -3,25 +3,6 @@ import { detectorClient } from './detectors';
 // 支持的 LLM 提供商
 export type LLMProvider = 'moonshot' | 'openrouter' | 'custom';
 
-// 预设模型列表
-export const PRESET_MODELS = {
-  moonshot: [
-    { id: 'kimi-k2-0711-preview', name: 'Kimi K2 Preview', provider: 'moonshot' },
-    { id: 'moonshot-v1-8k', name: 'Moonshot V1 8K', provider: 'moonshot' },
-    { id: 'moonshot-v1-32k', name: 'Moonshot V1 32K', provider: 'moonshot' },
-    { id: 'moonshot-v1-128k', name: 'Moonshot V1 128K', provider: 'moonshot' },
-  ],
-  openrouter: [
-    { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'openrouter' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openrouter' },
-    { id: 'google/gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'openrouter' },
-    { id: 'google/gemini-exp-1206', name: 'Gemini Exp 1206', provider: 'openrouter' },
-    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', provider: 'openrouter' },
-    { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', provider: 'openrouter' },
-    { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', provider: 'openrouter' },
-  ],
-} as const;
-
 // 提供商配置
 const PROVIDER_CONFIG: Record<LLMProvider, { baseUrl: string; envKey: string }> = {
   moonshot: {
@@ -278,11 +259,6 @@ export class LLMClient {
       model: this.model,
       baseUrl: this.baseUrl,
     };
-  }
-
-  // 静态方法：获取所有可用模型
-  static getAvailableModels() {
-    return PRESET_MODELS;
   }
 }
 

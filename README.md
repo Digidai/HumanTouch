@@ -38,7 +38,7 @@ Validate against ZeroGPT, GPTZero, and Copyleaks simultaneously for comprehensiv
 <td width="50%">
 
 ### 🤖 Multi-Model Support
-Use Moonshot, OpenRouter (Claude, GPT-4, Gemini, Llama, etc.) or any OpenAI-compatible API.
+Use **any model** via OpenRouter, Moonshot, or any OpenAI-compatible API. Full flexibility to choose your preferred LLM.
 
 ### 🌍 Edge Deployment
 Deploy to Vercel or Cloudflare Workers for global low-latency access.
@@ -51,31 +51,39 @@ Deploy to Vercel or Cloudflare Workers for global low-latency access.
 
 ## 🤖 Supported Models
 
-HumanTouch supports multiple LLM providers. Choose based on your needs:
+HumanTouch supports **any LLM** through multiple providers:
+
+### OpenRouter (Recommended - Access 200+ Models)
+
+Use any model available on [OpenRouter](https://openrouter.ai/models). Just specify the model ID in your request:
+
+```bash
+# Examples of model IDs you can use:
+anthropic/claude-sonnet-4
+openai/gpt-4o
+google/gemini-2.0-flash-exp
+meta-llama/llama-3.3-70b-instruct
+deepseek/deepseek-chat
+qwen/qwen-2.5-72b-instruct
+mistralai/mistral-large
+cohere/command-r-plus
+# ... and 200+ more models
+```
+
+Browse all available models at: https://openrouter.ai/models
 
 ### Moonshot (Default)
-| Model | Description |
-|-------|-------------|
-| `kimi-k2-0711-preview` | Latest Kimi model (default) |
-| `moonshot-v1-8k` | 8K context |
-| `moonshot-v1-32k` | 32K context |
-| `moonshot-v1-128k` | 128K context |
 
-### OpenRouter (Recommended for variety)
-Access 100+ models through [OpenRouter](https://openrouter.ai/):
+```bash
+kimi-k2-0711-preview   # Latest Kimi model (default)
+moonshot-v1-8k         # 8K context
+moonshot-v1-32k        # 32K context
+moonshot-v1-128k       # 128K context
+```
 
-| Model ID | Description |
-|----------|-------------|
-| `anthropic/claude-sonnet-4` | Claude Sonnet 4 |
-| `openai/gpt-4o` | GPT-4o |
-| `google/gemini-2.0-flash-exp` | Gemini 2.0 Flash |
-| `google/gemini-exp-1206` | Gemini Experimental |
-| `meta-llama/llama-3.3-70b-instruct` | Llama 3.3 70B |
-| `deepseek/deepseek-chat` | DeepSeek Chat |
-| `qwen/qwen-2.5-72b-instruct` | Qwen 2.5 72B |
+### Custom API (Any OpenAI-compatible endpoint)
 
-### Custom (Any OpenAI-compatible API)
-Use any API that follows OpenAI's chat completions format.
+Use any API that follows OpenAI's chat completions format (e.g., local LLMs, self-hosted models).
 
 ---
 
@@ -83,7 +91,7 @@ Use any API that follows OpenAI's chat completions format.
 
 ### One-Click Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Digidai/HumanTouch&env=MOONSHOT_API_KEY,JWT_SECRET,ALLOWED_API_KEYS)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Digidai/HumanTouch&env=OPENROUTER_API_KEY,JWT_SECRET,ALLOWED_API_KEYS)
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Digidai/HumanTouch)
 
 ### Local Development
@@ -126,12 +134,12 @@ curl -X POST https://your-domain.com/api/v1/process \
   }'
 ```
 
-### Using a Specific Model
+### Using Any Model (via OpenRouter)
 
-You can specify any supported model in the request:
+Specify any OpenRouter model ID in the `model` parameter:
 
 ```bash
-# Use Claude Sonnet 4 via OpenRouter
+# Use Claude Sonnet 4
 curl -X POST https://your-domain.com/api/v1/process \
   -H "Authorization: Bearer hk_your_api_key" \
   -H "Content-Type: application/json" \
@@ -139,36 +147,45 @@ curl -X POST https://your-domain.com/api/v1/process \
     "text": "Your AI-generated text...",
     "options": {
       "model": "anthropic/claude-sonnet-4",
-      "rounds": 3,
-      "style": "academic"
+      "rounds": 3
     }
   }'
 
-# Use GPT-4o via OpenRouter
+# Use GPT-4o
 curl -X POST https://your-domain.com/api/v1/process \
   -H "Authorization: Bearer hk_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text...",
     "options": {
-      "model": "openai/gpt-4o",
-      "rounds": 2
+      "model": "openai/gpt-4o"
     }
   }'
 
-# Use Gemini via OpenRouter
+# Use DeepSeek
 curl -X POST https://your-domain.com/api/v1/process \
   -H "Authorization: Bearer hk_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text...",
     "options": {
-      "model": "google/gemini-2.0-flash-exp"
+      "model": "deepseek/deepseek-chat"
+    }
+  }'
+
+# Use Llama 3.3 70B
+curl -X POST https://your-domain.com/api/v1/process \
+  -H "Authorization: Bearer hk_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Your AI-generated text...",
+    "options": {
+      "model": "meta-llama/llama-3.3-70b-instruct"
     }
   }'
 ```
 
-### Response with Model Info
+### Response
 
 ```json
 {
@@ -198,16 +215,16 @@ curl -X POST https://your-domain.com/api/v1/process \
 
 Configure ONE of the following in your environment:
 
-#### Option 1: Moonshot (Default)
+#### Option 1: OpenRouter (Recommended - 200+ models)
+```env
+OPENROUTER_API_KEY=sk-or-your-openrouter-key
+OPENROUTER_MODEL=anthropic/claude-sonnet-4  # Default model
+```
+
+#### Option 2: Moonshot
 ```env
 MOONSHOT_API_KEY=sk-your-moonshot-key
 MOONSHOT_MODEL=kimi-k2-0711-preview
-```
-
-#### Option 2: OpenRouter (Recommended)
-```env
-OPENROUTER_API_KEY=sk-or-your-openrouter-key
-OPENROUTER_MODEL=anthropic/claude-sonnet-4
 ```
 
 #### Option 3: Custom OpenAI-Compatible API
@@ -218,7 +235,8 @@ CUSTOM_LLM_MODEL=your-model-name
 ```
 
 ### Priority Order
-If multiple providers are configured, the priority is:
+
+If multiple providers are configured:
 1. **OpenRouter** (if `OPENROUTER_API_KEY` is set)
 2. **Moonshot** (if `MOONSHOT_API_KEY` is set)
 3. **Custom** (if `CUSTOM_LLM_API_KEY` and `CUSTOM_LLM_BASE_URL` are set)
@@ -227,16 +245,16 @@ If multiple providers are configured, the priority is:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| **LLM - Moonshot** |
-| `MOONSHOT_API_KEY` | ✅* | - | Moonshot API key |
-| `MOONSHOT_MODEL` | ❌ | `kimi-k2-0711-preview` | Moonshot model |
 | **LLM - OpenRouter** |
 | `OPENROUTER_API_KEY` | ✅* | - | OpenRouter API key |
 | `OPENROUTER_MODEL` | ❌ | `anthropic/claude-sonnet-4` | Default model |
+| **LLM - Moonshot** |
+| `MOONSHOT_API_KEY` | ✅* | - | Moonshot API key |
+| `MOONSHOT_MODEL` | ❌ | `kimi-k2-0711-preview` | Default model |
 | **LLM - Custom** |
 | `CUSTOM_LLM_API_KEY` | ✅* | - | Custom API key |
 | `CUSTOM_LLM_BASE_URL` | ✅* | - | Custom API base URL |
-| `CUSTOM_LLM_MODEL` | ❌ | `gpt-4` | Custom model name |
+| `CUSTOM_LLM_MODEL` | ❌ | `gpt-4` | Default model |
 | **Authentication** |
 | `JWT_SECRET` | Production | - | JWT signing secret |
 | `ALLOWED_API_KEYS` | Production | - | Comma-separated API keys |
@@ -249,7 +267,7 @@ If multiple providers are configured, the priority is:
 | **General** |
 | `MAX_TEXT_LENGTH` | ❌ | `10000` | Max characters |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | ❌ | `100` | Rate limit |
-| `SITE_URL` | ❌ | - | Your site URL (for OpenRouter) |
+| `SITE_URL` | ❌ | - | Your site URL |
 
 *At least one LLM provider must be configured.
 
@@ -268,19 +286,15 @@ If multiple providers are configured, the priority is:
 
 ### POST /api/v1/process
 
-**Request Parameters:**
-
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `text` | string | ✅ | Text to process (max 10000 chars) |
+| `options.model` | string | ❌ | Model ID (e.g., `anthropic/claude-sonnet-4`) |
 | `options.rounds` | number | ❌ | Processing rounds (1-5, default: 3) |
 | `options.style` | string | ❌ | `casual`, `academic`, `professional`, `creative` |
 | `options.target_score` | number | ❌ | Target detection score (0-1, default: 0.1) |
-| `options.model` | string | ❌ | Override default model |
 
 ### POST /api/v1/validate
-
-**Request Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -311,8 +325,8 @@ If multiple providers are configured, the priority is:
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│    Moonshot     │ │   OpenRouter    │ │   Custom LLM    │
-│  (Kimi Models)  │ │ (100+ Models)   │ │ (OpenAI-compat) │
+│   OpenRouter    │ │    Moonshot     │ │   Custom LLM    │
+│  (200+ Models)  │ │  (Kimi Models)  │ │ (OpenAI-compat) │
 └─────────────────┘ └─────────────────┘ └─────────────────┘
 ```
 
@@ -320,7 +334,7 @@ If multiple providers are configured, the priority is:
 
 ## 🚀 Deployment
 
-### Vercel (Recommended for full-stack)
+### Vercel (Full-stack)
 
 ```bash
 npm run deploy
@@ -329,25 +343,17 @@ npm run deploy
 ### Cloudflare Workers (API only)
 
 ```bash
-# Login to Cloudflare
 npx wrangler login
-
-# Configure secrets
 npm run cf:secret OPENROUTER_API_KEY
 npm run cf:secret JWT_SECRET
 npm run cf:secret ALLOWED_API_KEYS
-
-# Deploy
 npm run deploy:cf
 ```
-
-### Deployment Comparison
 
 | Platform | Pros | Limits (Free) |
 |----------|------|---------------|
 | **Vercel** | Full-stack, zero config | 10s timeout, 100K/mo |
 | **Cloudflare Workers** | Higher limits, faster | API only, 30s CPU |
-| **Hybrid** | Best of both | Requires setup |
 
 ---
 
@@ -355,27 +361,19 @@ npm run deploy:cf
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ---
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [Moonshot AI](https://moonshot.cn/) - AI text generation
 - [OpenRouter](https://openrouter.ai/) - Multi-model API gateway
-- [ZeroGPT](https://zerogpt.com/) - AI detection
-- [GPTZero](https://gptzero.me/) - AI detection
-- [Copyleaks](https://copyleaks.com/) - AI detection
+- [Moonshot AI](https://moonshot.cn/) - Kimi models
+- [ZeroGPT](https://zerogpt.com/), [GPTZero](https://gptzero.me/), [Copyleaks](https://copyleaks.com/) - AI detection
 
 ---
 
