@@ -108,7 +108,7 @@ async function handleProcess(request: Request, env: Env): Promise<Response> {
     );
   }
 
-  const maxLength = parseInt(env.MAX_TEXT_LENGTH || '10000');
+  const maxLength = parseInt(env.MAX_TEXT_LENGTH || '30000');
   if (body.text.length > maxLength) {
     return jsonResponse(
       {

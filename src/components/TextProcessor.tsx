@@ -164,15 +164,15 @@ export function TextProcessor() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={8}
-            maxLength={10000}
+            maxLength={30000}
             disabled={loading}
           />
           <div className="flex justify-between items-center text-sm">
             <span className={fieldError ? 'text-red-500' : 'text-[var(--stone-500)]'}>
-              {fieldError ?? '最多支持 10,000 字符，建议分段处理长文'}
+              {fieldError ?? (text.length > 6000 ? '长文将自动分段处理' : '支持长文本，自动分段处理')}
             </span>
             <span className="text-[var(--stone-400)] tabular-nums">
-              {text.length.toLocaleString()}/10,000
+              {text.length.toLocaleString()}/30,000
             </span>
           </div>
         </div>
@@ -221,7 +221,7 @@ export function TextProcessor() {
 
         {/* Processing Mode */}
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-[var(--stone-700)]">处理模式</label>
+          <label className="label">处理模式</label>
           <div className="flex gap-3">
             <button
               type="button"
@@ -371,42 +371,42 @@ export function TextProcessor() {
 
                 {/* Score Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-[var(--stone-50)] rounded-xl p-4">
-                    <p className="text-xs text-[var(--stone-500)] mb-1">ZeroGPT</p>
-                    <p className="font-display text-2xl font-bold text-[var(--stone-900)]">
+                  <div className="card stat-card">
+                    <p className="stat-label">ZeroGPT</p>
+                    <p className="stat-value tabular-nums">
                       {((result as ProcessResponse).detection_scores?.zerogpt * 100).toFixed(1)}%
                     </p>
                   </div>
-                  <div className="bg-[var(--stone-50)] rounded-xl p-4">
-                    <p className="text-xs text-[var(--stone-500)] mb-1">GPTZero</p>
-                    <p className="font-display text-2xl font-bold text-[var(--stone-900)]">
+                  <div className="card stat-card">
+                    <p className="stat-label">GPTZero</p>
+                    <p className="stat-value tabular-nums">
                       {((result as ProcessResponse).detection_scores?.gptzero * 100).toFixed(1)}%
                     </p>
                   </div>
-                  <div className="bg-[var(--stone-50)] rounded-xl p-4">
-                    <p className="text-xs text-[var(--stone-500)] mb-1">Copyleaks</p>
-                    <p className="font-display text-2xl font-bold text-[var(--stone-900)]">
+                  <div className="card stat-card">
+                    <p className="stat-label">Copyleaks</p>
+                    <p className="stat-value tabular-nums">
                       {((result as ProcessResponse).detection_scores?.copyleaks * 100).toFixed(1)}%
                     </p>
                   </div>
-                  <div className="bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] rounded-xl p-4">
-                    <p className="text-xs text-[var(--coral-600)] mb-1">处理时间</p>
-                    <p className="font-display text-2xl font-bold text-[var(--coral-700)]">
+                  <div className="card stat-card !bg-gradient-to-br !from-[var(--coral-50)] !to-[var(--coral-100)]">
+                    <p className="stat-label !text-[var(--coral-600)]">处理时间</p>
+                    <p className="stat-value tabular-nums !text-[var(--coral-700)]">
                       {(result as ProcessResponse).processing_time?.toFixed(2)}s
                     </p>
                   </div>
                 </div>
 
                 {/* Processed Text */}
-                <div className="bg-white/80 backdrop-blur-sm border border-[var(--stone-200)]/50 rounded-xl p-6">
+                <div className="card p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Sparkles className="w-4 h-4 text-[var(--coral-500)]" />
-                    <span className="text-sm font-medium text-[var(--stone-700)]">处理后的文本</span>
-                    <span className="text-xs text-[var(--stone-400)]">
-                      ({(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length} 字符)
+                    <span className="label !mb-0">处理后的文本</span>
+                    <span className="badge badge-gray">
+                      {(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length} 字符
                     </span>
                   </div>
-                  <p className="text-[var(--stone-700)] leading-relaxed whitespace-pre-wrap">
+                  <p className="text-[var(--stone-700)] leading-relaxed whitespace-pre-wrap text-pretty">
                     {(result as ProcessResponse).processed_text}
                   </p>
                 </div>

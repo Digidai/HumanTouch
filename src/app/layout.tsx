@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Crimson_Pro, Outfit } from "next/font/google";
+import { Crimson_Pro, Outfit, Noto_Sans_SC } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
+// 英文标题字体
 const crimsonPro = Crimson_Pro({
   variable: "--font-crimson",
   subsets: ["latin"],
@@ -10,8 +11,17 @@ const crimsonPro = Crimson_Pro({
   weight: ["400", "500", "600", "700"],
 });
 
+// 英文正文字体
 const outfit = Outfit({
   variable: "--font-outfit",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+// 中文字体
+const notoSansSC = Noto_Sans_SC({
+  variable: "--font-noto-sc",
   subsets: ["latin"],
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
@@ -35,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${crimsonPro.variable} ${outfit.variable}`}>
+    <html lang="zh-CN" className={`${crimsonPro.variable} ${outfit.variable} ${notoSansSC.variable}`}>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const texts = body.texts;
     const maxTexts = 10; // 每批最多处理10个文本
-    const maxLengthPerText = parseInt(process.env.MAX_TEXT_LENGTH || '10000');
+    const maxLengthPerText = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
     
     if (texts.length > maxTexts) {
       return NextResponse.json(
@@ -193,7 +193,7 @@ export async function GET() {
     success: true,
     data: {
       max_batch_size: 10,
-      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '10000'),
+      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
       supported_styles: ['academic', 'casual', 'professional', 'creative'],
       default_rounds: 2,
     },

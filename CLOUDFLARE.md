@@ -98,7 +98,7 @@ curl -X POST https://humantouch-api.xxx.workers.dev/api/v1/validate \
 | `JWT_SECRET` | 生产 | JWT 签名密钥 |
 | `ALLOWED_API_KEYS` | 生产 | 允许的 API 密钥列表（逗号分隔） |
 | `API_KEY_PREFIX` | ❌ | API 密钥前缀（默认 `hk_`） |
-| `MAX_TEXT_LENGTH` | ❌ | 最大文本长度（默认 10000） |
+| `MAX_TEXT_LENGTH` | ❌ | 最大文本长度（默认 30000，支持长文自动分段） |
 | `DETECTOR_MODE` | ❌ | 检测模式：`mock`（默认）或 `strict` |
 | `ZEROGPT_API_KEY` | ❌ | ZeroGPT API 密钥 |
 | `GPTZERO_API_KEY` | ❌ | GPTZero API 密钥 |

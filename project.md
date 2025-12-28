@@ -197,7 +197,7 @@ NODE_ENV=production
 ### 4. API配置
 ```env
 RATE_LIMIT_REQUESTS_PER_MINUTE=100
-MAX_TEXT_LENGTH=10000
+MAX_TEXT_LENGTH=30000
 CACHE_TTL=3600
 LOG_LEVEL=info
 JWT_SECRET=your-jwt-secret-key
@@ -541,7 +541,7 @@ Content-Type: application/json
   "error": {
     "code": "INVALID_TEXT_LENGTH",
     "message": "文本长度超过限制",
-    "details": "最大长度为10000字符，当前长度为15000字符"
+    "details": "最大长度为30000字符，当前长度为35000字符"
   },
   "meta": {
     "request_id": "req_123456",
@@ -586,13 +586,13 @@ curl -X GET \
 
 ### 免费版限制
 - 每分钟100个请求
-- 每天10,000字符处理
-- 单次请求最大1,000字符
+- 每天30,000字符处理
+- 单次请求最大3,000字符
 
 ### 付费版限制
 - 每分钟1,000个请求
-- 每天1,000,000字符处理
-- 单次请求最大10,000字符
+- 每天3,000,000字符处理
+- 单次请求最大30,000字符（自动分段处理）
 
 ## Webhook通知
 

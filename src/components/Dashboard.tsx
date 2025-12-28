@@ -87,73 +87,59 @@ export function Dashboard() {
         <div className="mb-12 animate-fade-in-up">
           <div className="flex items-center gap-3 mb-4">
             <div className="decorative-dot" />
-            <span className="text-sm font-medium text-[var(--coral-600)] uppercase tracking-wider">
-              AI 内容优化
-            </span>
+            <span className="badge badge-coral">AI 内容优化</span>
           </div>
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--stone-900)] leading-tight mb-4">
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--stone-900)] leading-tight mb-4 text-balance">
             让 AI 文本更具
             <span className="text-gradient">人情味</span>
           </h1>
-          <p className="text-lg text-[var(--stone-500)] max-w-2xl leading-relaxed">
+          <p className="text-lg text-[var(--stone-500)] max-w-2xl leading-relaxed text-pretty">
             通过智能多轮处理，将 AI 生成的文本转换为更自然的人类写作风格，有效降低 AI 检测概率
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-          <div className="card-hover animate-fade-in-up delay-100 opacity-0" style={{ animationFillMode: 'forwards' }}>
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[var(--stone-200)]/50 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-[var(--coral-500)]" />
-                </div>
-                <span className="text-xs font-medium text-[var(--stone-400)] uppercase tracking-wider">
-                  今日
-                </span>
+          <div className="card card-hover stat-card animate-fade-in-up delay-100 opacity-0" style={{ animationFillMode: 'forwards' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] flex items-center justify-center">
+                <Zap className="w-6 h-6 text-[var(--coral-500)]" />
               </div>
-              <div className="font-display text-3xl font-bold text-[var(--stone-900)] mb-1">
-                {todayCount}
-                <span className="text-lg font-normal text-[var(--stone-400)] ml-1">次</span>
-              </div>
-              <p className="text-sm text-[var(--stone-500)]">文本处理次数</p>
+              <span className="badge badge-coral">今日</span>
             </div>
+            <div className="stat-value tabular-nums !text-3xl">
+              {todayCount}
+              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">次</span>
+            </div>
+            <p className="stat-label !text-sm !mt-1">文本处理次数</p>
           </div>
 
-          <div className="card-hover animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[var(--stone-200)]/50 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--teal-50)] to-[var(--teal-100)] flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-[var(--teal-500)]" />
-                </div>
-                <span className="text-xs font-medium text-[var(--stone-400)] uppercase tracking-wider">
-                  平均
-                </span>
+          <div className="card card-hover stat-card animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--teal-50)] to-[var(--teal-100)] flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-[var(--teal-500)]" />
               </div>
-              <div className="font-display text-3xl font-bold text-[var(--stone-900)] mb-1">
-                {(avgScore * 100).toFixed(1)}
-                <span className="text-lg font-normal text-[var(--stone-400)] ml-1">%</span>
-              </div>
-              <p className="text-sm text-[var(--stone-500)]">AI 检测分数</p>
+              <span className="badge badge-teal">平均</span>
             </div>
+            <div className="stat-value tabular-nums !text-3xl">
+              {(avgScore * 100).toFixed(1)}
+              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">%</span>
+            </div>
+            <p className="stat-label !text-sm !mt-1">AI 检测分数</p>
           </div>
 
-          <div className="card-hover animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[var(--stone-200)]/50 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-purple-500" />
-                </div>
-                <span className="text-xs font-medium text-[var(--stone-400)] uppercase tracking-wider">
-                  效率
-                </span>
+          <div className="card card-hover stat-card animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-purple-500" />
               </div>
-              <div className="font-display text-3xl font-bold text-[var(--stone-900)] mb-1">
-                {avgTime.toFixed(1)}
-                <span className="text-lg font-normal text-[var(--stone-400)] ml-1">秒</span>
-              </div>
-              <p className="text-sm text-[var(--stone-500)]">平均处理时间</p>
+              <span className="badge badge-gray">效率</span>
             </div>
+            <div className="stat-value tabular-nums !text-3xl">
+              {avgTime.toFixed(1)}
+              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">秒</span>
+            </div>
+            <p className="stat-label !text-sm !mt-1">平均处理时间</p>
           </div>
         </div>
 

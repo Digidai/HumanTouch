@@ -5,7 +5,7 @@ import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse, ApiResponse } from '@/types/api';
 
 // Vercel Serverless Function 配置
-export const maxDuration = 60; // 60秒超时，足够多轮 LLM 处理
+export const maxDuration = 300; // 5分钟超时，支持长文多轮处理
 export const dynamic = 'force-dynamic';
 
 // CORS 响应头
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     const text = body.text;
-    const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '10000');
+    const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
     
     if (text.length > maxLength) {
       return NextResponse.json(

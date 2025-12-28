@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const text = body.text;
-    const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '10000');
+    const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
     
     if (text.length > maxLength) {
       return NextResponse.json(
@@ -129,7 +129,7 @@ export async function GET() {
     success: true,
     data: {
       supported_detectors: ['zerogpt', 'gptzero', 'copyleaks'],
-      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '10000'),
+      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
       features: [
         '实时AI检测',
         '多检测器对比',

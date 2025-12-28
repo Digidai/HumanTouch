@@ -452,8 +452,8 @@
           "text": {
             "type": "string",
             "minLength": 10,
-            "maxLength": 10000,
-            "description": "需要处理的文本内容"
+            "maxLength": 30000,
+            "description": "需要处理的文本内容（支持长文自动分段处理）"
           },
           "api_key": {
             "type": "string",
@@ -554,11 +554,11 @@
             "items": {
               "type": "string",
               "minLength": 10,
-              "maxLength": 10000
+              "maxLength": 30000
             },
             "minItems": 1,
             "maxItems": 10,
-            "description": "文本数组"
+            "description": "文本数组（每个文本支持长文自动分段处理）"
           },
           "api_key": {
             "type": "string",
@@ -619,7 +619,8 @@
           "text": {
             "type": "string",
             "minLength": 10,
-            "maxLength": 10000
+            "maxLength": 30000,
+            "description": "需要处理的文本（支持长文自动分段处理）"
           },
           "api_key": {
             "type": "string",
@@ -750,7 +751,8 @@
           "text": {
             "type": "string",
             "minLength": 10,
-            "maxLength": 10000
+            "maxLength": 30000,
+            "description": "需要检测的文本"
           },
           "detectors": {
             "type": "array",

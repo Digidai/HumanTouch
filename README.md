@@ -283,7 +283,7 @@ If multiple providers are configured:
 | `GPTZERO_API_KEY` | ❌ | - | GPTZero API key |
 | `COPYLEAKS_API_KEY` | ❌ | - | Copyleaks API key |
 | **General** |
-| `MAX_TEXT_LENGTH` | ❌ | `10000` | Max characters |
+| `MAX_TEXT_LENGTH` | ❌ | `30000` | Max characters (auto-chunked for long text) |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | ❌ | `100` | Rate limit |
 | `SITE_URL` | ❌ | - | Your site URL |
 
@@ -306,7 +306,7 @@ If multiple providers are configured:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `text` | string | ✅ | Text to process (max 10000 chars) |
+| `text` | string | ✅ | Text to process (max 30000 chars, auto-chunked) |
 | `api_key` | string | ✅ (API) | LLM API key for authenticated API calls |
 | `options.model` | string | ❌ | Model ID (API only; not allowed for public web) |
 | `options.rounds` | number | ❌ | Processing rounds (1-5, default: 3) |
@@ -319,6 +319,89 @@ If multiple providers are configured:
 |-----------|------|----------|-------------|
 | `text` | string | ✅ | Text to analyze |
 | `detectors` | array | ❌ | `["zerogpt", "gptzero", "copyleaks"]` |
+
+---
+
+## 🧠 How It Works: The Science Behind AI Detection
+
+Understanding how AI detectors work is key to effectively humanizing text. HumanTouch uses research-backed strategies targeting the core metrics that detectors analyze.
+
+### AI Detection: Core Metrics
+
+AI detectors primarily analyze these linguistic features:
+
+| Metric | AI Text Characteristics | Human Text Characteristics |
+|--------|------------------------|---------------------------|
+| **Perplexity** | Low (predictable word choices) | High (unexpected, varied word choices) |
+| **Burstiness** | Uniform sentence length | Dramatic variation in sentence length |
+| **Vocabulary Diversity** | Repetitive patterns | Rich, varied vocabulary |
+| **Syntactic Structure** | Uniform, template-like | Irregular, varied structures |
+
+#### What is Perplexity?
+
+Perplexity measures how "surprised" a language model is by the text. AI-generated text has **low perplexity** because it follows predictable patterns. Human writing has **higher perplexity** due to unexpected word choices and unique expressions.
+
+#### What is Burstiness?
+
+Burstiness measures variation in sentence complexity. Humans naturally write in "bursts" - sometimes short punchy sentences, sometimes long complex ones. AI tends to produce **uniform sentence lengths**, which is a telltale sign.
+
+### Research Findings
+
+Based on academic research and industry analysis:
+
+- **Paraphrasing effectiveness**: Studies show paraphrasing can reduce AI detection rates from **70.3% to 4.6%** ([ResearchGate, 2024](https://www.researchgate.net/publication/388103693))
+- **Simple prompts don't work**: Asking ChatGPT to "add perplexity and burstiness" still results in **98% detection** - targeted strategies are required
+- **Detector accuracy**: Current detectors are only accurate **~70% of the time**, with **10-28% false positives** on human text
+
+### HumanTouch's 6-Round Strategy
+
+Each round targets specific AI characteristics:
+
+| Round | Strategy | Target Problem | Key Techniques |
+|-------|----------|---------------|----------------|
+| **1** | AI Pattern Removal | Typical AI phrases | Remove "firstly/secondly", "in conclusion", template phrases |
+| **2** | Syntax Restructuring | Uniform sentences | Vary sentence length, change SVO order, add rhetorical questions |
+| **3** | Vocabulary Diversification | Predictable words | Synonym variation, break fixed collocations, add concrete imagery |
+| **4** | Thought Injection | Lack of personality | Add hedging language, personal opinions, emotional responses |
+| **5** | Deep Polish | Overall naturalness | Final flow check, unique metaphors, intentional imperfection |
+| **6** | Extreme Processing | Stubborn AI traces | Complete rewrites, unexpected analogies, pattern breaking |
+
+### Adaptive Strategy System
+
+HumanTouch doesn't blindly apply all rounds. It **analyzes detection scores after each round** and selects the most effective next strategy:
+
+```
+Detection Result → Identify Highest Score → Select Targeted Strategy
+```
+
+- **ZeroGPT high** → Focus on vocabulary diversity (Round 3, 4, 6)
+- **GPTZero high** → Focus on burstiness (Round 2, 4, 5)
+- **Copyleaks high** → Focus on pattern removal (Round 1, 2, 6)
+
+### Style-Aware Processing
+
+Different writing contexts require different approaches:
+
+| Style | Tone | Vocabulary | Personality |
+|-------|------|------------|-------------|
+| `casual` | Relaxed, friendly | Colloquial, contractions | Conversational, "I think..." |
+| `academic` | Rigorous, objective | Technical terms, precise | Cautious claims, citations |
+| `professional` | Confident, concise | Industry terminology | Solution-oriented |
+| `creative` | Vivid, evocative | Metaphors, sensory words | Unique perspective |
+
+### Technical Optimizations
+
+- **Long text handling**: 15k character threshold, intelligent paragraph-boundary chunking
+- **Token limits**: Up to 30,000 tokens for comprehensive rewrites
+- **Retry mechanism**: 5 retries with exponential backoff for stability
+- **Dynamic timeout**: 5 minutes for long texts, 2 minutes for standard
+
+### References
+
+- [Why Perplexity and Burstiness Fail to Detect AI](https://www.pangram.com/blog/why-perplexity-and-burstiness-fail-to-detect-ai) - Pangram Labs
+- [How Perplexity and Burstiness Make AI Text Undetectable](https://www.stealthgpt.ai/blog/how-do-perplexity-and-burstiness-make-ai-text-undetectable) - StealthGPT
+- [AI Text Detection Method Based on Perplexity Features](https://ceur-ws.org/Vol-3740/paper-261.pdf) - Academic Paper
+- [How to Bypass AI Detection: Proven Methods for 2025](https://deliberatedirections.com/how-to-bypass-ai-detection/)
 
 ---
 

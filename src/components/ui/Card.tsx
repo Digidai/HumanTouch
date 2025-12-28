@@ -7,6 +7,7 @@ interface CardProps {
   description?: string;
   icon?: ReactNode;
   hover?: boolean;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
 export function Card({
@@ -16,13 +17,18 @@ export function Card({
   description,
   icon,
   hover = false,
+  padding = 'md',
 }: CardProps) {
+  const paddingClasses = {
+    none: '',
+    sm: 'p-4',
+    md: 'p-6',
+    lg: 'p-8',
+  };
+
   return (
     <div
-      className={`
-        bg-white/70 backdrop-blur-sm rounded-2xl border border-[var(--stone-200)]/50
-        shadow-sm ${hover ? 'card-hover' : ''} ${className}
-      `}
+      className={`card ${hover ? 'card-hover' : ''} ${className}`}
     >
       {(title || description || icon) && (
         <div className="px-6 pt-6 pb-4 border-b border-[var(--stone-100)]">
@@ -32,14 +38,14 @@ export function Card({
                 {icon}
               </div>
             )}
-            <div>
+            <div className="min-w-0 flex-1">
               {title && (
-                <h3 className="font-display text-xl font-semibold text-[var(--stone-900)]">
+                <h3 className="font-display text-xl font-semibold text-[var(--stone-900)] text-balance">
                   {title}
                 </h3>
               )}
               {description && (
-                <p className="text-sm text-[var(--stone-500)] mt-1">
+                <p className="caption mt-1 text-pretty">
                   {description}
                 </p>
               )}
@@ -47,7 +53,7 @@ export function Card({
           </div>
         </div>
       )}
-      <div className="p-6">{children}</div>
+      <div className={paddingClasses[padding]}>{children}</div>
     </div>
   );
 }
