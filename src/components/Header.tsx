@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FileText, User, KeyRound, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useApiKey } from '@/lib/api-client';
 
 export function Header() {
-  const { apiKey } = useApiKey();
+  const { apiKey, saveApiKey, loadApiKey, clearApiKey } = useApiKey();
+  const [inputKey, setInputKey] = useState('');
+
+  useEffect(() => {
+    loadApiKey();
+  }, [loadApiKey]);
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -21,9 +26,48 @@ export function Header() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="flex items-center text-sm text-green-600">
-              <User className="h-4 w-4 mr-1" />
-              系统运行中
+            <div className="flex items-center space-x-3">
+              <div className={`flex items-center text-xs px-2 py-1 rounded-full ${apiKey ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                <User className="h-4 w-4 mr-1" />
+                {apiKey ? '已设置 API Key' : '未设置 API Key'}
+              </div>
+
+              {apiKey ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => clearApiKey()}
+                  className="flex items-center space-x-1 text-xs"
+                >
+                  <LogOut className="h-3 w-3" />
+                  <span>清除 Key</span>
+                </Button>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={inputKey}
+                      onChange={(e) => setInputKey(e.target.value)}
+                      placeholder="粘贴 API Key..."
+                      className="block w-48 rounded-md border-gray-300 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs"
+                    />
+                    <KeyRound className="h-3 w-3 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2" />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (inputKey.trim()) {
+                        saveApiKey(inputKey.trim());
+                        setInputKey('');
+                      }
+                    }}
+                    className="text-xs"
+                  >
+                    保存 Key
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

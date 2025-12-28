@@ -30,9 +30,20 @@ export function TextProcessor() {
   const [result, setResult] = useState<ProcessResponse | { task_id: string; mode: 'async' } | null>(null);
   const [mode, setMode] = useState<'sync' | 'async'>('sync');
   const [webhookUrl, setWebhookUrl] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   const handleProcess = async () => {
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      setFieldError('请输入需要处理的文本');
+      return;
+    }
+
+    if (!apiKey) {
+      setFieldError('请先在右上角设置 API Key 再开始处理');
+      return;
+    }
+
+    setFieldError(null);
     
     try {
       setResult(null);
@@ -66,7 +77,12 @@ export function TextProcessor() {
             maxLength={10000}
             disabled={loading || !apiKey}
           />
-          <div className="text-sm text-gray-500 mt-1">{text.length}/10000 字符</div>
+          <div className="flex justify-between items-center mt-1 text-sm">
+            <span className={fieldError ? 'text-red-600' : 'text-gray-500'}>
+              {fieldError ?? '最多支持 10000 字符，建议分段处理长文'}
+            </span>
+            <span className="text-gray-500">{text.length}/10000 字符</span>
+          </div>
         </div>
 
         {/* 处理选项 */}
@@ -211,7 +227,11 @@ export function TextProcessor() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-              <p className="text-sm text-red-800">{error.message}</p>
+              <p className="text-sm text-red-800">
+                {error.code === 'RATE_LIMIT_EXCEEDED'
+                  ? '请求过于频繁，请稍后再试。'
+                  : error.message || '处理过程中出现错误，请稍后重试。'}
+              </p>
             </div>
           </div>
         )}

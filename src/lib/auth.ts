@@ -19,9 +19,21 @@ export interface ApiKey {
 export class AuthManager {
   private static instance: AuthManager;
   private jwtSecret: string;
+  private isDev: boolean;
 
   constructor() {
-    this.jwtSecret = process.env.JWT_SECRET || 'fallback-secret-change-this';
+    this.isDev = process.env.NODE_ENV !== 'production';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      if (this.isDev) {
+        console.warn('[AuthManager] JWT_SECRET is not set. Using insecure development fallback. DO NOT use this in production.');
+        this.jwtSecret = 'dev-only-insecure-secret-change-this';
+      } else {
+        throw new Error('[AuthManager] JWT_SECRET must be set in production environment');
+      }
+    } else {
+      this.jwtSecret = secret;
+    }
   }
 
   static getInstance(): AuthManager {
@@ -60,18 +72,36 @@ export class AuthManager {
   }
 
   validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[] } {
-    // 这里应该查询数据库验证API密钥
-    // 暂存简单验证
     const prefix = process.env.API_KEY_PREFIX || 'hk_';
     if (!apiKey.startsWith(prefix)) {
       return { valid: false };
     }
-    
-    // 模拟验证逻辑
+
+    // 生产环境必须使用显式允许列表，避免任何符合前缀的 key 都通过
+    const allowed = process.env.ALLOWED_API_KEYS;
+
+    if (!allowed) {
+      if (this.isDev) {
+        console.warn('[AuthManager] ALLOWED_API_KEYS not configured. Accepting any key with correct prefix in development.');
+        return {
+          valid: true,
+          userId: 'dev-user',
+          permissions: ['process', 'validate', 'batch', 'async', 'status'],
+        };
+      }
+
+      return { valid: false };
+    }
+
+    const allowedKeys = allowed.split(',').map(k => k.trim()).filter(Boolean);
+    if (!allowedKeys.includes(apiKey)) {
+      return { valid: false };
+    }
+
     return {
       valid: true,
-      userId: 'demo-user',
-      permissions: ['process', 'validate', 'batch', 'async', 'status']
+      userId: 'api-key-user',
+      permissions: ['process', 'validate', 'batch', 'async', 'status'],
     };
   }
 }

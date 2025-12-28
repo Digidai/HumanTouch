@@ -1,0 +1,29 @@
+name = "humantouch-api"
+main = "workers/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+API_KEY_PREFIX = "hk_"
+MAX_TEXT_LENGTH = "10000"
+DETECTOR_MODE = "mock"
+
+# 生产环境需要配置的 secrets (使用 wrangler secret put 命令):
+# - MOONSHOT_API_KEY
+# - JWT_SECRET
+# - ALLOWED_API_KEYS
+# - ZEROGPT_API_KEY (可选)
+# - GPTZERO_API_KEY (可选)
+# - COPYLEAKS_API_KEY (可选)
+# - WEBHOOK_SECRET (可选)
+
+[build]
+command = ""
+
+# 开发环境
+[env.dev]
+vars = { DETECTOR_MODE = "mock" }
+
+# 生产环境
+[env.production]
+vars = { DETECTOR_MODE = "strict" }

@@ -27,7 +27,7 @@ interface Task {
 
 export function TaskMonitor() {
   const { apiKey } = useApiKey();
-  const { getTasks, getTaskStatus, loading } = useApi({ apiKey });
+  const { getTasks, getTaskStatus, loading, error } = useApi({ apiKey });
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -222,6 +222,18 @@ export function TaskMonitor() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* 错误提示 */}
+        {error && apiKey && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              <p className="text-sm text-red-800">
+                {error.message || '获取任务信息时出现错误，请稍后重试。'}
+              </p>
             </div>
           </div>
         )}

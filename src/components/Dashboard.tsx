@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, BarChart3, Upload, BookOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FileText, BarChart3, Upload } from 'lucide-react';
 import { TextProcessor } from './TextProcessor';
 import { TaskMonitor } from './TaskMonitor';
 import { BatchProcessor } from './BatchProcessor';
 import { Card } from '@/components/ui/Card';
-import { useApiKey } from '@/lib/api-client';
+import { useApi, useApiKey } from '@/lib/api-client';
+import type { TaskListResponse } from '@/types/api';
 
 const tabs = [
   {
@@ -30,8 +31,56 @@ const tabs = [
 ];
 
 export function Dashboard() {
-  const { apiKey } = useApiKey();
   const [activeTab, setActiveTab] = useState('process');
+  const { apiKey } = useApiKey();
+  const { getTasks } = useApi({ apiKey });
+  const [todayCount, setTodayCount] = useState(0);
+  const [avgScore, setAvgScore] = useState(0);
+  const [avgTime, setAvgTime] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!apiKey) return;
+
+      try {
+        const data: TaskListResponse = await getTasks({ limit: 100 });
+        const tasks = data.tasks || [];
+
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+
+        const todayTasks = tasks.filter((t: any) =>
+          (t.completed_at || t.updated_at || t.created_at || '').startsWith(todayStr)
+        );
+
+        setTodayCount(todayTasks.length);
+
+        let scoreSum = 0;
+        let scoreCount = 0;
+        let timeSum = 0;
+
+        todayTasks.forEach((t: any) => {
+          const result = t.result;
+          if (result?.detection_scores) {
+            const s = result.detection_scores;
+            const avg = (s.zerogpt + s.gptzero + s.copyleaks) / 3;
+            scoreSum += avg;
+            scoreCount += 1;
+          }
+          if (result?.processing_time) {
+            timeSum += result.processing_time;
+          }
+        });
+
+        setAvgScore(scoreCount ? scoreSum / scoreCount : 0);
+        setAvgTime(todayTasks.length ? timeSum / todayTasks.length : 0);
+      } catch (e) {
+        console.error('获取统计信息失败:', e);
+      }
+    };
+
+    fetchStats();
+  }, [apiKey, getTasks]);
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || TextProcessor;
 
@@ -44,24 +93,6 @@ export function Dashboard() {
             将AI生成的文本转换为更自然的人类写作风格，有效降低AI检测概率
           </p>
         </div>
-
-        {/* 使用说明卡片 */}
-        {!apiKey && (
-          <Card className="mb-6">
-            <div className="flex items-start space-x-4">
-              <BookOpen className="h-6 w-6 text-blue-600 mt-1" />
-              <div>
-                <h3 className="text-lg font-semibold mb-2">使用说明</h3>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 首先点击右上角&quot;设置API密钥&quot;进行身份验证</li>
-                  <li>• 使用&quot;文本处理&quot;处理单个文本，支持同步和异步模式</li>
-                  <li>• 使用&quot;批量处理&quot;上传多个文本文件进行批量处理</li>
-                  <li>• 使用&quot;任务监控&quot;查看所有异步任务的处理状态</li>
-                </ul>
-              </div>
-            </div>
-          </Card>
-        )}
 
         {/* 标签导航 */}
         <div className="mb-6">
@@ -94,28 +125,26 @@ export function Dashboard() {
         </div>
 
         {/* 统计信息 */}
-        {apiKey && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card title="今日处理" description="今日处理的文本数量">
-              <div className="text-2xl font-bold text-blue-600">
-                0
-                <span className="text-sm text-gray-500 font-normal ml-1">条</span>
-              </div>
-            </Card>
-            <Card title="平均分数" description="AI检测平均分数">
-              <div className="text-2xl font-bold text-green-600">
-                0.0
-                <span className="text-sm text-gray-500 font-normal ml-1">%</span>
-              </div>
-            </Card>
-            <Card title="处理效率" description="平均处理时间">
-              <div className="text-2xl font-bold text-purple-600">
-                0.0
-                <span className="text-sm text-gray-500 font-normal ml-1">秒</span>
-              </div>
-            </Card>
-          </div>
-        )}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card title="今日处理" description="今日处理的文本数量">
+            <div className="text-2xl font-bold text-blue-600">
+              {todayCount}
+              <span className="text-sm text-gray-500 font-normal ml-1">条</span>
+            </div>
+          </Card>
+          <Card title="平均分数" description="AI检测平均分数">
+            <div className="text-2xl font-bold text-green-600">
+              {(avgScore * 100).toFixed(1)}
+              <span className="text-sm text-gray-500 font-normal ml-1">%</span>
+            </div>
+          </Card>
+          <Card title="处理效率" description="平均处理时间">
+            <div className="text-2xl font-bold text-purple-600">
+              {avgTime.toFixed(2)}
+              <span className="text-sm text-gray-500 font-normal ml-1">秒</span>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

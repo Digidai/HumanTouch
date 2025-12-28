@@ -1,11 +1,5 @@
-import { env } from 'process';
-import { detectorClient } from './detectors';
-
-interface MoonshotConfig {
-  apiKey: string;
-  model: string;
-  baseUrl: string;
-}
+import { Env } from './auth';
+import { DetectorClient } from './detectors';
 
 interface MoonshotRequest {
   model: string;
@@ -23,11 +17,6 @@ interface MoonshotResponse {
       content: string;
     };
   }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
 }
 
 interface ProcessingResult {
@@ -40,20 +29,19 @@ interface ProcessingResult {
   roundScores: number[][];
 }
 
-const config: MoonshotConfig = {
-  apiKey: process.env.MOONSHOT_API_KEY || '',
-  model: process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview',
-  baseUrl: 'https://api.moonshot.cn/v1',
-};
-
 export class MoonshotClient {
-  private config: MoonshotConfig;
+  private apiKey: string;
+  private model: string;
+  private baseUrl = 'https://api.moonshot.cn/v1';
+  private detectorClient: DetectorClient;
 
-  constructor(configOverride?: Partial<MoonshotConfig>) {
-    this.config = { ...config, ...configOverride };
-    if (!this.config.apiKey) {
+  constructor(env: Env) {
+    if (!env.MOONSHOT_API_KEY) {
       throw new Error('[MoonshotClient] MOONSHOT_API_KEY is required');
     }
+    this.apiKey = env.MOONSHOT_API_KEY;
+    this.model = env.MOONSHOT_MODEL || 'kimi-k2-0711-preview';
+    this.detectorClient = new DetectorClient(env);
   }
 
   async processText(text: string, options: {
@@ -70,21 +58,18 @@ export class MoonshotClient {
 
     for (let round = 1; round <= rounds; round++) {
       const instruction = this.getHumanizationInstruction(round, style, targetScore);
-      
       currentText = await this.processSingleRound(currentText, instruction);
       
-      // 每轮结束后检测分数
-      const scores = await detectorClient.detectAll(currentText);
+      const scores = await this.detectorClient.detectAll(currentText);
       roundScores.push([scores.zerogpt, scores.gptzero, scores.copyleaks]);
 
-      // 如果达到目标分数，提前终止
       const avgScore = (scores.zerogpt + scores.gptzero + scores.copyleaks) / 3;
       if (avgScore <= targetScore) {
         break;
       }
     }
 
-    const finalScores = await detectorClient.detectAll(currentText);
+    const finalScores = await this.detectorClient.detectAll(currentText);
 
     return {
       processedText: currentText,
@@ -95,45 +80,34 @@ export class MoonshotClient {
 
   private async processSingleRound(text: string, instruction: string): Promise<string> {
     const request: MoonshotRequest = {
-      model: this.config.model,
+      model: this.model,
       messages: [
-        {
-          role: 'system',
-          content: instruction
-        },
-        {
-          role: 'user',
-          content: text
-        }
+        { role: 'system', content: instruction },
+        { role: 'user', content: text }
       ],
-      temperature: 0.7 + Math.random() * 0.2, // 增加随机性
+      temperature: 0.7 + Math.random() * 0.2,
       max_tokens: Math.min(text.length * 2, 4000)
     };
 
-    try {
-      const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify(request),
-      });
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(request),
+    });
 
-      if (!response.ok) {
-        throw new Error(`Moonshot API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data: MoonshotResponse = await response.json();
-      return data.choices[0]?.message?.content || text;
-    } catch (error) {
-      console.error('Error calling Moonshot API:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Moonshot API error: ${response.status} ${response.statusText}`);
     }
+
+    const data: MoonshotResponse = await response.json();
+    return data.choices[0]?.message?.content || text;
   }
 
   private getHumanizationInstruction(round: number, style: string, targetScore: number): string {
-    const instructions = {
+    const instructions: Record<number, string> = {
       1: `你是一个专业的文本人性化专家。请将以下AI生成的文本转换为更自然、更像人类写作的内容。
       
       当前要求：
@@ -190,8 +164,6 @@ export class MoonshotClient {
       重点：确保最终文本能够通过AI检测，同时保持高质量和可读性。`
     };
 
-    return instructions[round as keyof typeof instructions] || instructions[1];
+    return instructions[round] || instructions[1];
   }
 }
-
-export const moonshotClient = new MoonshotClient();

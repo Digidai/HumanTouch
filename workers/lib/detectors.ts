@@ -1,67 +1,23 @@
-import { ValidateResponse } from '@/types/api';
+import { Env } from './auth';
 
-interface ZeroGPTResponse {
-  success: boolean;
-  data: {
-    ai_generated_percent: number;
-    human_generated_percent: number;
-    original_text: string;
-    sentences: Array<{
-      sentence: string;
-      ai_generated_percent: number;
-      human_generated_percent: number;
-    }>;
-  };
-}
-
-interface GPTZeroResponse {
-  documents: Array<{
-    average_generated_prob: number;
-    completely_generated_prob: number;
-    overall_burstiness: number;
-    class_probabilities: {
-      real: number;
-      fake: number;
-    };
-  }>;
-}
-
-interface CopyleaksResponse {
-  scanId: string;
-  status: {
-    ai: {
-      score: number;
-      words: Array<{
-        text: string;
-        score: number;
-      }>;
-    };
-    human: {
-      score: number;
-      words: Array<{
-        text: string;
-        score: number;
-      }>;
-    };
-  };
+interface DetectionScores {
+  zerogpt: number;
+  gptzero: number;
+  copyleaks: number;
 }
 
 export class DetectorClient {
-  private zeroGptKey: string;
-  private gptZeroKey: string;
-  private copyleaksKey: string;
+  private env: Env;
   private mode: 'mock' | 'strict';
 
-  constructor() {
-    this.zeroGptKey = process.env.ZEROGPT_API_KEY || '';
-    this.gptZeroKey = process.env.GPTZERO_API_KEY || '';
-    this.copyleaksKey = process.env.COPYLEAKS_API_KEY || '';
-    const envMode = (process.env.DETECTOR_MODE || 'mock').toLowerCase();
+  constructor(env: Env) {
+    this.env = env;
+    const envMode = (env.DETECTOR_MODE || 'mock').toLowerCase();
     this.mode = envMode === 'strict' ? 'strict' : 'mock';
   }
 
   async detectWithZeroGPT(text: string): Promise<number> {
-    if (!this.zeroGptKey) {
+    if (!this.env.ZEROGPT_API_KEY) {
       console.warn('[DetectorClient] ZeroGPT API key not configured');
       if (this.mode === 'mock') {
         return Math.random() * 0.3;
@@ -74,7 +30,7 @@ export class DetectorClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': this.zeroGptKey,
+          'api-key': this.env.ZEROGPT_API_KEY,
         },
         body: JSON.stringify({ input_text: text }),
       });
@@ -83,16 +39,16 @@ export class DetectorClient {
         throw new Error(`ZeroGPT API error: ${response.status}`);
       }
 
-      const data: ZeroGPTResponse = await response.json();
+      const data = await response.json() as { data: { ai_generated_percent: number } };
       return data.data.ai_generated_percent / 100;
     } catch (error) {
       console.error('Error calling ZeroGPT API:', error);
-      return Math.random() * 0.3; // 模拟分数
+      return Math.random() * 0.3;
     }
   }
 
   async detectWithGPTZero(text: string): Promise<number> {
-    if (!this.gptZeroKey) {
+    if (!this.env.GPTZERO_API_KEY) {
       console.warn('[DetectorClient] GPTZero API key not configured');
       if (this.mode === 'mock') {
         return Math.random() * 0.3;
@@ -105,7 +61,7 @@ export class DetectorClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Api-Key': this.gptZeroKey,
+          'X-Api-Key': this.env.GPTZERO_API_KEY,
         },
         body: JSON.stringify({
           document: text,
@@ -117,16 +73,16 @@ export class DetectorClient {
         throw new Error(`GPTZero API error: ${response.status}`);
       }
 
-      const data: GPTZeroResponse = await response.json();
+      const data = await response.json() as { documents: Array<{ class_probabilities?: { fake?: number } }> };
       return data.documents[0]?.class_probabilities?.fake || 0;
     } catch (error) {
       console.error('Error calling GPTZero API:', error);
-      return Math.random() * 0.3; // 模拟分数
+      return Math.random() * 0.3;
     }
   }
 
   async detectWithCopyleaks(text: string): Promise<number> {
-    if (!this.copyleaksKey) {
+    if (!this.env.COPYLEAKS_API_KEY) {
       console.warn('[DetectorClient] Copyleaks API key not configured');
       if (this.mode === 'mock') {
         return Math.random() * 0.3;
@@ -139,7 +95,7 @@ export class DetectorClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.copyleaksKey}`,
+          'Authorization': `Bearer ${this.env.COPYLEAKS_API_KEY}`,
         },
         body: JSON.stringify({ text }),
       });
@@ -148,19 +104,15 @@ export class DetectorClient {
         throw new Error(`Copyleaks API error: ${response.status}`);
       }
 
-      const data: CopyleaksResponse = await response.json();
+      const data = await response.json() as { status: { ai: { score: number } } };
       return data.status.ai.score;
     } catch (error) {
       console.error('Error calling Copyleaks API:', error);
-      return Math.random() * 0.3; // 模拟分数
+      return Math.random() * 0.3;
     }
   }
 
-  async detectAll(text: string): Promise<{
-    zerogpt: number;
-    gptzero: number;
-    copyleaks: number;
-  }> {
+  async detectAll(text: string): Promise<DetectionScores> {
     const [zerogpt, gptzero, copyleaks] = await Promise.all([
       this.detectWithZeroGPT(text),
       this.detectWithGPTZero(text),
@@ -173,32 +125,4 @@ export class DetectorClient {
       copyleaks: Math.round(copyleaks * 100) / 100,
     };
   }
-
-  async getOverallScore(scores: {
-    zerogpt: number;
-    gptzero: number;
-    copyleaks: number;
-  }): Promise<{
-    overall_score: number;
-    human_likelihood: number;
-  }> {
-    // 计算加权平均值
-    const weights = {
-      zerogpt: 0.4,
-      gptzero: 0.35,
-      copyleaks: 0.25,
-    };
-
-    const overallScore = 
-      scores.zerogpt * weights.zerogpt +
-      scores.gptzero * weights.gptzero +
-      scores.copyleaks * weights.copyleaks;
-
-    return {
-      overall_score: Math.round(overallScore * 100) / 100,
-      human_likelihood: Math.round((1 - overallScore) * 100) / 100,
-    };
-  }
 }
-
-export const detectorClient = new DetectorClient();

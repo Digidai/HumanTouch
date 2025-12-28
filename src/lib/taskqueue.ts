@@ -173,6 +173,7 @@ export class TaskQueue {
     if (!task.webhook_url) return;
 
     try {
+      const secret = process.env.WEBHOOK_SECRET || process.env.JWT_SECRET;
       const payload = {
         task_id: task.id,
         status: task.status,
@@ -181,15 +182,44 @@ export class TaskQueue {
         timestamp: new Date().toISOString(),
       };
 
-      await fetch(task.webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const body = JSON.stringify(payload);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (secret) {
+        const crypto = await import('crypto');
+        const signature = crypto
+          .createHmac('sha256', secret)
+          .update(body)
+          .digest('hex');
+        headers['X-Humantouch-Signature'] = signature;
+      }
+
+      await this.postWithRetry(task.webhook_url, body, headers);
     } catch (error) {
       console.error(`Failed to send webhook for task ${task.id}:`, error);
+    }
+  }
+
+  private async postWithRetry(url: string, body: string, headers: Record<string, string>, retries = 2): Promise<void> {
+    let attempt = 0;
+    while (attempt <= retries) {
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers,
+          body,
+        });
+        return;
+      } catch (error) {
+        attempt += 1;
+        if (attempt > retries) {
+          throw error;
+        }
+        const delay = 500 * attempt;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
   }
 

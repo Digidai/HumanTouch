@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "deploy": "vercel --prod",
+    "deploy:cf": "wrangler deploy",
+    "dev:cf": "wrangler dev",
+    "cf:secret": "wrangler secret put",
     "test": "node test-api.js",
     "test-async": "node test-async.js"
   },
@@ -23,6 +26,8 @@
     "swr": "^2.2.5"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "wrangler": "^3.99.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",

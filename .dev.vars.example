@@ -1,0 +1,17 @@
+# Cloudflare Workers 本地开发环境变量
+# 复制此文件为 .dev.vars 并填写实际值
+
+# 必需
+MOONSHOT_API_KEY=your-moonshot-api-key
+
+# 认证 (生产环境必需)
+JWT_SECRET=your-jwt-secret
+ALLOWED_API_KEYS=hk_your_key_1,hk_your_key_2
+
+# 检测器 API (可选，不配置则使用模拟分数)
+ZEROGPT_API_KEY=
+GPTZERO_API_KEY=
+COPYLEAKS_API_KEY=
+
+# Webhook 签名 (可选)
+WEBHOOK_SECRET=

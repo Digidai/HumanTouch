@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
-import { ProcessRequest, ProcessResponse, BatchRequest, BatchResponse, AsyncTaskResponse, TaskStatusResponse, ValidateRequest, ValidateResponse } from '@/types/api';
+import { ProcessRequest, ProcessResponse, BatchRequest, BatchResponse, AsyncTaskResponse, TaskStatusResponse, ValidateRequest, ValidateResponse, TaskListResponse } from '@/types/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
-interface ApiError {
+export interface ApiError {
   code: string;
   message: string;
   details?: string;
+  httpStatus?: number;
 }
 
 interface UseApiOptions {
@@ -43,23 +44,36 @@ export function useApi(options: UseApiOptions = {}) {
       const result = await response.json();
 
       if (!result.success) {
-        throw result.error;
+        const errPayload = result.error || {};
+        const apiError: ApiError = {
+          code: errPayload.code || 'UNKNOWN_ERROR',
+          message: errPayload.message || '请求失败',
+          details: errPayload.details,
+          httpStatus: response.status,
+        };
+        throw apiError;
       }
 
       return result.data;
     } catch (err) {
-      const apiError: ApiError = {
-        code: 'NETWORK_ERROR',
-        message: '网络请求失败',
-        details: err instanceof Error ? err.message : String(err),
-      };
-      
-      if (err && typeof err === 'object') {
-        apiError.code = (err as any).code || 'UNKNOWN_ERROR';
-        apiError.message = (err as any).message || '请求失败';
-        apiError.details = (err as any).details;
+      let apiError: ApiError;
+
+      if (err && typeof err === 'object' && 'code' in (err as any)) {
+        const e = err as any;
+        apiError = {
+          code: e.code || 'UNKNOWN_ERROR',
+          message: e.message || '请求失败',
+          details: e.details,
+          httpStatus: e.httpStatus,
+        };
+      } else {
+        apiError = {
+          code: 'NETWORK_ERROR',
+          message: '网络请求失败',
+          details: err instanceof Error ? err.message : String(err),
+        };
       }
-      
+
       setError(apiError);
       throw apiError;
     } finally {
@@ -89,7 +103,7 @@ export function useApi(options: UseApiOptions = {}) {
     if (params?.limit) query.append('limit', params.limit.toString());
     if (params?.offset) query.append('offset', params.offset.toString());
     
-    return makeRequest(`/tasks?${query.toString()}`);
+    return makeRequest(`/tasks?${query.toString()}`) as Promise<TaskListResponse>;
   }, [makeRequest]);
 
   const validateText = useCallback(async (request: ValidateRequest) => {

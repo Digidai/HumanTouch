@@ -34,6 +34,7 @@ export function BatchProcessor() {
     target_score: 0.1,
   });
   const [dragOver, setDragOver] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
@@ -84,6 +85,11 @@ export function BatchProcessor() {
 
   const processBatch = async () => {
     if (files.length === 0) return;
+
+    if (!apiKey) {
+      setNotice('请先设置 API Key 再进行批量处理');
+      return;
+    }
     
     const fileContents = await Promise.all(
       files.map(async file => {
@@ -115,6 +121,7 @@ export function BatchProcessor() {
         status: 'failed' as const,
         error: '处理失败',
       })));
+      setNotice('批量处理失败，请检查网络或稍后重试。');
     }
   };
 
@@ -348,6 +355,15 @@ export function BatchProcessor() {
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
               <p className="text-sm text-yellow-800">请先设置API密钥以使用批量处理功能</p>
+            </div>
+          </div>
+        )}
+
+        {notice && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-blue-600 mr-2" />
+              <p className="text-sm text-blue-800">{notice}</p>
             </div>
           </div>
         )}

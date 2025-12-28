@@ -86,6 +86,36 @@ export interface TaskStatusResponse {
   updated_at: string;
 }
 
+export interface TaskListItem {
+  task_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  text_preview: string;
+  text_length: number;
+  result?: ProcessResponse;
+}
+
+export interface TaskListResponse {
+  tasks: TaskListItem[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    has_more: boolean;
+  };
+  stats: {
+    total: number;
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    cache_size: number;
+    cache_ttl: number;
+  };
+}
+
 export interface ValidateRequest {
   text: string;
   detectors?: ('zerogpt' | 'gptzero' | 'copyleaks')[];
