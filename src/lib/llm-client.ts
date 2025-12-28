@@ -262,8 +262,18 @@ export class LLMClient {
   }
 }
 
-// 创建默认客户端实例
-export const llmClient = new LLMClient();
+// 延迟实例化，避免在构建时因缺少环境变量而失败
+let _llmClient: LLMClient | null = null;
 
-// 向后兼容：保留 moonshotClient 别名
-export const moonshotClient = llmClient;
+export function getLLMClient(): LLMClient {
+  if (!_llmClient) {
+    _llmClient = new LLMClient();
+  }
+  return _llmClient;
+}
+
+// 向后兼容：保留 moonshotClient 别名（延迟获取）
+export const moonshotClient = {
+  processText: (...args: Parameters<LLMClient['processText']>) => getLLMClient().processText(...args),
+  getConfig: () => getLLMClient().getConfig(),
+};
