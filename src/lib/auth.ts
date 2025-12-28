@@ -71,7 +71,18 @@ export class AuthManager {
     }
   }
 
-  validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[] } {
+  validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[]; isLLMKey?: boolean } {
+    // 检查是否是 LLM 提供商的 API Key (用于直接调用 LLM)
+    if (apiKey.startsWith('sk-')) {
+      // Moonshot/OpenAI 格式的 key，允许通过并标记为 LLM Key
+      return {
+        valid: true,
+        userId: 'llm-user',
+        permissions: ['process', 'validate', 'batch', 'async', 'status'],
+        isLLMKey: true,
+      };
+    }
+
     const prefix = process.env.API_KEY_PREFIX || 'hk_';
     if (!apiKey.startsWith(prefix)) {
       return { valid: false };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LLMClient } from '@/lib/llm-client';
-import { createAuthMiddleware } from '@/lib/auth';
+import { createAuthMiddleware, extractAuthToken } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse, ApiResponse } from '@/types/api';
 
@@ -65,8 +65,15 @@ export async function POST(request: NextRequest) {
     const style = body.options?.style || 'casual';
     const model = body.options?.model;
 
-    // 创建 LLM 客户端（支持动态选择模型）
-    const llmClient = new LLMClient();
+    // 获取用户提供的 API Key，如果是 LLM Key (sk-xxx) 则使用它
+    const userToken = extractAuthToken(request);
+    const userLLMKey = userToken?.startsWith('sk-') ? userToken : undefined;
+
+    // 创建 LLM 客户端（支持用户提供的 API Key 或使用环境变量配置）
+    const llmClient = new LLMClient(userLLMKey ? {
+      provider: 'moonshot',
+      apiKey: userLLMKey,
+    } : undefined);
 
     // 处理文本
     const result = await llmClient.processText(text, {
