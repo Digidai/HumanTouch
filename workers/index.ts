@@ -4,6 +4,7 @@ import { DetectorClient } from './lib/detectors';
 
 interface ProcessRequest {
   text: string;
+  api_key?: string;
   options?: {
     rounds?: number;
     style?: string;
@@ -124,7 +125,27 @@ async function handleProcess(request: Request, env: Env): Promise<Response> {
   }
 
   try {
-    const client = new LLMClient(env);
+    const llmApiKey = body.api_key || (body as { key?: string }).key;
+    if (!llmApiKey) {
+      return jsonResponse(
+        {
+          success: false,
+          error: {
+            code: 'LLM_API_KEY_REQUIRED',
+            message: '需要提供 LLM API Key',
+            details: '请在参数中传入 api_key 或 key',
+          },
+          meta: { request_id: requestId, timestamp: new Date().toISOString(), api_version: 'v1' },
+        },
+        400
+      );
+    }
+
+    const client = new LLMClient(env, {
+      apiKey: llmApiKey,
+      model: body.options?.model,
+      provider: 'openrouter',
+    });
     const result = await client.processText(body.text, {
       rounds: body.options?.rounds || 3,
       style: body.options?.style || 'casual',

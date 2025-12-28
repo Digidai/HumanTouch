@@ -51,7 +51,7 @@ Deploy to Vercel or Cloudflare Workers for global low-latency access.
 
 ## 🤖 Supported Models
 
-HumanTouch supports **any LLM** through multiple providers:
+HumanTouch supports **any LLM** through multiple providers. The web UI always uses the server default model, while authenticated API calls can choose models.
 
 ### OpenRouter (Recommended - Access 200+ Models)
 
@@ -82,14 +82,18 @@ Use any API that follows OpenAI's chat completions format (e.g., local LLMs, sel
 
 ### Use Online (No Setup Required)
 
-Visit the deployed app and enter your own **OpenRouter API Key** directly in the UI:
-1. Get a free API key from [OpenRouter](https://openrouter.ai/keys)
-2. Enter it in the top-right corner of the app
-3. Start processing text immediately
+Visit the deployed app and start immediately (no API key required):
+1. Open the app
+2. Paste your text
+3. Start processing (uses the server default model)
+
+To select a model or use your own LLM key, use the API with `api_key`.
 
 ### One-Click Deploy
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Digidai/HumanTouch&env=OPENROUTER_API_KEY,JWT_SECRET,ALLOWED_API_KEYS)
+
+`OPENROUTER_API_KEY` (or custom provider) powers the public web UI. `ALLOWED_API_KEYS` controls API access.
 
 ### Local Development
 
@@ -115,11 +119,33 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## 📖 API Usage
 
+API calls require two keys:
+- **Access key** in `Authorization: Bearer hk_...` (configured via `ALLOWED_API_KEYS`)
+- **LLM key** in request body `api_key` (OpenRouter/OpenAI-compatible)
+
+Public web requests do **not** require these keys, but only use the default model.
+
 ### Basic Request
 
 ```bash
 curl -X POST https://your-domain.com/api/v1/process \
   -H "Authorization: Bearer hk_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Your AI-generated text here...",
+    "api_key": "sk-or-your-openrouter-key",
+    "options": {
+      "rounds": 3,
+      "style": "casual",
+      "target_score": 0.1
+    }
+  }'
+```
+
+### Public Web Request (No Auth, Default Model Only)
+
+```bash
+curl -X POST https://your-domain.com/api/v1/process \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text here...",
@@ -133,7 +159,7 @@ curl -X POST https://your-domain.com/api/v1/process \
 
 ### Using Any Model (via OpenRouter)
 
-Specify any OpenRouter model ID in the `model` parameter:
+Specify any OpenRouter model ID in the `model` parameter (authenticated API only):
 
 ```bash
 # Use Claude Sonnet 4
@@ -142,6 +168,7 @@ curl -X POST https://your-domain.com/api/v1/process \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text...",
+    "api_key": "sk-or-your-openrouter-key",
     "options": {
       "model": "anthropic/claude-sonnet-4",
       "rounds": 3
@@ -154,6 +181,7 @@ curl -X POST https://your-domain.com/api/v1/process \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text...",
+    "api_key": "sk-or-your-openrouter-key",
     "options": {
       "model": "openai/gpt-4o"
     }
@@ -165,6 +193,7 @@ curl -X POST https://your-domain.com/api/v1/process \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text...",
+    "api_key": "sk-or-your-openrouter-key",
     "options": {
       "model": "deepseek/deepseek-chat"
     }
@@ -176,6 +205,7 @@ curl -X POST https://your-domain.com/api/v1/process \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Your AI-generated text...",
+    "api_key": "sk-or-your-openrouter-key",
     "options": {
       "model": "meta-llama/llama-3.3-70b-instruct"
     }
@@ -211,6 +241,7 @@ curl -X POST https://your-domain.com/api/v1/process \
 ### LLM Provider Setup
 
 Configure ONE of the following in your environment:
+These settings power the public web UI default model; authenticated API calls always use the per-request `api_key`.
 
 #### Option 1: OpenRouter (Default - 200+ models)
 ```env
@@ -225,7 +256,7 @@ CUSTOM_LLM_BASE_URL=https://your-api.com/v1
 CUSTOM_LLM_MODEL=your-model-name
 ```
 
-### Priority Order
+### Priority Order (Public Web UI)
 
 If multiple providers are configured:
 1. **OpenRouter** (if `OPENROUTER_API_KEY` is set)
@@ -236,15 +267,15 @@ If multiple providers are configured:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | **LLM - OpenRouter (Default)** |
-| `OPENROUTER_API_KEY` | ✅* | - | OpenRouter API key |
+| `OPENROUTER_API_KEY` | ✅* | - | OpenRouter API key (public web UI default model) |
 | `OPENROUTER_MODEL` | ❌ | `google/gemini-2.0-flash-exp:free` | Default model |
 | **LLM - Custom** |
-| `CUSTOM_LLM_API_KEY` | ✅* | - | Custom API key |
-| `CUSTOM_LLM_BASE_URL` | ✅* | - | Custom API base URL |
+| `CUSTOM_LLM_API_KEY` | ✅* | - | Custom API key (public web UI default model) |
+| `CUSTOM_LLM_BASE_URL` | ✅* | - | Custom API base URL (public web UI default model) |
 | `CUSTOM_LLM_MODEL` | ❌ | `gpt-4` | Default model |
 | **Authentication** |
 | `JWT_SECRET` | Production | - | JWT signing secret |
-| `ALLOWED_API_KEYS` | Production | - | Comma-separated API keys |
+| `ALLOWED_API_KEYS` | Production | - | Comma-separated API access keys (Bearer) |
 | `API_KEY_PREFIX` | ❌ | `hk_` | API key prefix |
 | **Detection** |
 | `DETECTOR_MODE` | ❌ | `mock` | `mock` or `strict` |
@@ -276,7 +307,8 @@ If multiple providers are configured:
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `text` | string | ✅ | Text to process (max 10000 chars) |
-| `options.model` | string | ❌ | Model ID (e.g., `anthropic/claude-sonnet-4`) |
+| `api_key` | string | ✅ (API) | LLM API key for authenticated API calls |
+| `options.model` | string | ❌ | Model ID (API only; not allowed for public web) |
 | `options.rounds` | number | ❌ | Processing rounds (1-5, default: 3) |
 | `options.style` | string | ❌ | `casual`, `academic`, `professional`, `creative` |
 | `options.target_score` | number | ❌ | Target detection score (0-1, default: 0.1) |
@@ -325,7 +357,8 @@ If multiple providers are configured:
 
 1. Click the "Deploy with Vercel" button above
 2. Set environment variables:
-   - `OPENROUTER_API_KEY`: Your OpenRouter API key
+   - `OPENROUTER_API_KEY`: LLM key for the public web UI default model
+   - `ALLOWED_API_KEYS`: Comma-separated API access keys (for Bearer auth)
 3. Deploy!
 
 Or deploy via CLI:

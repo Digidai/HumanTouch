@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "HumanTouch API",
-    "description": "AI内容人性化处理系统 - 将AI生成的文本转换为更自然的人类写作风格，有效规避AI检测工具。",
+    "description": "AI内容人性化处理系统 - 将AI生成的文本转换为更自然的人类写作风格，有效规避AI检测工具。API 调用需 Bearer 鉴权并在请求体传入 api_key；公开网页无需鉴权且仅使用默认模型。",
     "version": "1.0.0",
     "contact": {
       "name": "HumanTouch Support",
@@ -87,7 +87,7 @@
       "post": {
         "tags": ["Content Processing"],
         "summary": "同步内容处理",
-        "description": "将AI生成的文本转换为更自然的人类写作风格，实时返回处理结果。",
+        "description": "将AI生成的文本转换为更自然的人类写作风格，实时返回处理结果。API 调用需 Bearer 鉴权并传入 api_key；公开网页请求不需要鉴权，但不允许传入 model。",
         "security": [
           {
             "BearerAuth": []
@@ -105,6 +105,7 @@
                   "summary": "基础处理示例",
                   "value": {
                     "text": "人工智能生成的文本通常具有高度的逻辑性和一致性...",
+                    "api_key": "sk-or-your-openrouter-key",
                     "options": {
                       "rounds": 3,
                       "style": "casual",
@@ -143,7 +144,7 @@
       "post": {
         "tags": ["Content Processing"],
         "summary": "批量内容处理",
-        "description": "同时处理多个文本，提高处理效率。",
+        "description": "同时处理多个文本，提高处理效率。API 调用需 Bearer 鉴权并传入 api_key；公开网页请求不需要鉴权，但不允许传入 model。",
         "security": [
           {
             "BearerAuth": []
@@ -194,7 +195,7 @@
       "post": {
         "tags": ["Async Processing"],
         "summary": "创建异步任务",
-        "description": "创建异步处理任务，适合处理大量文本或长时间运行的任务。",
+        "description": "创建异步处理任务，适合处理大量文本或长时间运行的任务。API 调用需 Bearer 鉴权并传入 api_key；公开网页请求不需要鉴权，但不允许传入 model。",
         "security": [
           {
             "BearerAuth": []
@@ -375,7 +376,8 @@
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "bearerFormat": "API Key",
+        "description": "API access key (hk_...)"
       }
     },
     "schemas": {
@@ -453,6 +455,10 @@
             "maxLength": 10000,
             "description": "需要处理的文本内容"
           },
+          "api_key": {
+            "type": "string",
+            "description": "LLM API Key（API 调用必填；公开网页可省略）"
+          },
           "options": {
             "type": "object",
             "properties": {
@@ -480,6 +486,10 @@
                 "type": "boolean",
                 "default": false,
                 "description": "是否保留原始格式"
+              },
+              "model": {
+                "type": "string",
+                "description": "模型ID（仅限 API 鉴权请求）"
               }
             }
           }
@@ -524,6 +534,14 @@
           "rounds_used": {
             "type": "integer",
             "description": "实际使用的处理轮数"
+          },
+          "model_used": {
+            "type": "string",
+            "description": "实际使用的模型"
+          },
+          "provider": {
+            "type": "string",
+            "description": "提供商"
           }
         }
       },
@@ -541,6 +559,10 @@
             "minItems": 1,
             "maxItems": 10,
             "description": "文本数组"
+          },
+          "api_key": {
+            "type": "string",
+            "description": "LLM API Key（API 调用必填；公开网页可省略）"
           },
           "options": {
             "$ref": "#/components/schemas/ProcessOptions"
@@ -577,6 +599,16 @@
             "type": "string",
             "enum": ["academic", "casual", "professional", "creative"],
             "default": "casual"
+          },
+          "target_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.1
+          },
+          "model": {
+            "type": "string",
+            "description": "模型ID（仅限 API 鉴权请求）"
           }
         }
       },
@@ -588,6 +620,10 @@
             "type": "string",
             "minLength": 10,
             "maxLength": 10000
+          },
+          "api_key": {
+            "type": "string",
+            "description": "LLM API Key（API 调用必填；公开网页可省略）"
           },
           "options": {
             "type": "object",
@@ -607,6 +643,16 @@
                 "type": "string",
                 "format": "uri",
                 "description": "webhook通知URL"
+              },
+              "target_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.1
+              },
+              "model": {
+                "type": "string",
+                "description": "模型ID（仅限 API 鉴权请求）"
               }
             }
           }

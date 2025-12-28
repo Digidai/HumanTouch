@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { taskQueue } from '@/lib/taskqueue';
-import { createAuthMiddleware } from '@/lib/auth';
+import { publicTaskQueue, privateTaskQueue } from '@/lib/taskqueue';
+import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ApiResponse } from '@/types/api';
 
@@ -16,9 +16,10 @@ export async function GET(
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['process', 'status'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { context, response: authResponse } = resolveAccess(request, ['process', 'status'], true);
+    if (authResponse) return authResponse;
+    const accessMode = context?.mode || 'public';
 
     if (!taskId) {
       return NextResponse.json(
@@ -39,7 +40,8 @@ export async function GET(
       );
     }
 
-    const task = taskQueue.getTask(taskId);
+    const queue = accessMode === 'private' ? privateTaskQueue : publicTaskQueue;
+    const task = queue.getTask(taskId);
 
     if (!task) {
       return NextResponse.json(
@@ -116,9 +118,10 @@ export async function DELETE(
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['process', 'status'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { context, response: authResponse } = resolveAccess(request, ['process', 'status'], true);
+    if (authResponse) return authResponse;
+    const accessMode = context?.mode || 'public';
 
     if (!taskId) {
       return NextResponse.json(
@@ -141,7 +144,8 @@ export async function DELETE(
 
     // 这里可以添加任务取消逻辑
     // 目前仅返回任务状态
-    const task = taskQueue.getTask(taskId);
+    const queue = accessMode === 'private' ? privateTaskQueue : publicTaskQueue;
+    const task = queue.getTask(taskId);
 
     if (!task) {
       return NextResponse.json(

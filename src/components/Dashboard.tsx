@@ -5,7 +5,7 @@ import { FileText, BarChart3, Upload, Zap, Clock, TrendingUp } from 'lucide-reac
 import { TextProcessor } from './TextProcessor';
 import { TaskMonitor } from './TaskMonitor';
 import { BatchProcessor } from './BatchProcessor';
-import { useApi, useApiKey } from '@/lib/api-client';
+import { useApi } from '@/lib/api-client';
 import type { TaskListResponse } from '@/types/api';
 
 const tabs = [
@@ -31,16 +31,13 @@ const tabs = [
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('process');
-  const { apiKey } = useApiKey();
-  const { getTasks } = useApi({ apiKey });
+  const { getTasks } = useApi();
   const [todayCount, setTodayCount] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
   const [avgTime, setAvgTime] = useState(0);
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!apiKey) return;
-
       try {
         const data: TaskListResponse = await getTasks({ limit: 100 });
         const tasks = data.tasks || [];
@@ -79,7 +76,7 @@ export function Dashboard() {
     };
 
     fetchStats();
-  }, [apiKey, getTasks]);
+  }, [getTasks]);
 
   const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || TextProcessor;
 

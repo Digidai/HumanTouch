@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { useApi, useApiKey } from '@/lib/api-client';
+import { useApi } from '@/lib/api-client';
 
 interface Task {
   id: string;
@@ -26,33 +26,33 @@ interface Task {
 }
 
 export function TaskMonitor() {
-  const { apiKey } = useApiKey();
-  const { getTasks, getTaskStatus, loading, error } = useApi({ apiKey });
+  const { getTasks, getTaskStatus, loading, error } = useApi();
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [polling, setPolling] = useState(false);
 
   const fetchTasks = useCallback(async () => {
-    if (!apiKey) return;
-    
     try {
       const response = await getTasks({ limit: 50 });
-      setTasks(response.tasks || []);
+      const normalized = (response.tasks || []).map((task: any) => ({
+        ...task,
+        id: task.task_id,
+      }));
+      setTasks(normalized);
     } catch (err) {
       console.error('获取任务列表失败:', err);
     }
-  }, [apiKey, getTasks]);
+  }, [getTasks]);
 
   const refreshTaskStatus = useCallback(async (taskId: string) => {
-    if (!apiKey) return;
-    
     try {
       const response = await getTaskStatus(taskId);
       setTasks(prev => prev.map(task => 
         task.id === taskId ? { 
           ...task, 
           ...response,
+          id: response.task_id || taskId,
           status: response.status as Task['status']
         } : task
       ));
@@ -67,7 +67,7 @@ export function TaskMonitor() {
     } catch (err) {
       console.error('获取任务状态失败:', err);
     }
-  }, [apiKey, getTaskStatus, selectedTask?.id]);
+  }, [getTaskStatus, selectedTask?.id]);
 
   const startPolling = useCallback(() => {
     if (polling) return;
@@ -89,12 +89,10 @@ export function TaskMonitor() {
   }, [fetchTasks, refreshTaskStatus, selectedTask, polling]);
 
   useEffect(() => {
-    if (apiKey) {
-      fetchTasks();
-      const stopPolling = startPolling();
-      return stopPolling;
-    }
-  }, [apiKey, fetchTasks, startPolling]);
+    fetchTasks();
+    const stopPolling = startPolling();
+    return stopPolling;
+  }, [fetchTasks, startPolling]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -140,7 +138,7 @@ export function TaskMonitor() {
           </div>
           <Button
             onClick={fetchTasks}
-            disabled={loading || !apiKey}
+            disabled={loading}
             loading={loading}
             className="flex items-center space-x-2"
           >
@@ -149,14 +147,7 @@ export function TaskMonitor() {
           </Button>
         </div>
 
-        {!apiKey ? (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-              <p className="text-sm text-yellow-800">请先设置API密钥以查看任务</p>
-            </div>
-          </div>
-        ) : tasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <div className="text-center py-12">
             <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">暂无任务记录</p>
@@ -227,7 +218,7 @@ export function TaskMonitor() {
         )}
 
         {/* 错误提示 */}
-        {error && apiKey && (
+        {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2" />

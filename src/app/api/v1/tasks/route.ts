@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { taskQueue } from '@/lib/taskqueue';
-import { createAuthMiddleware } from '@/lib/auth';
+import { publicTaskQueue, privateTaskQueue } from '@/lib/taskqueue';
+import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ApiResponse } from '@/types/api';
 
@@ -12,9 +12,10 @@ export async function GET(request: NextRequest) {
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['process', 'status'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { context, response: authResponse } = resolveAccess(request, ['process', 'status'], true);
+    if (authResponse) return authResponse;
+    const accessMode = context?.mode || 'public';
 
     const url = new URL(request.url);
     const statusParam = url.searchParams.get('status');
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
-    let tasks = taskQueue.getAllTasks();
+    const queue = accessMode === 'private' ? privateTaskQueue : publicTaskQueue;
+    let tasks = queue.getAllTasks();
 
     // 应用状态过滤
     if (statusFilter && ['pending', 'processing', 'completed', 'failed'].includes(statusFilter)) {
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
           offset,
           has_more: offset + limit < total,
         },
-        stats: taskQueue.getStats(),
+        stats: queue.getStats(),
       },
       meta: {
         request_id: requestId,
@@ -92,17 +94,19 @@ export async function DELETE(request: NextRequest) {
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['process', 'status'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { context, response: authResponse } = resolveAccess(request, ['process', 'status'], true);
+    if (authResponse) return authResponse;
+    const accessMode = context?.mode || 'public';
 
     const url = new URL(request.url);
     const olderThan = parseInt(url.searchParams.get('older_than') || '86400000'); // 默认24小时
 
     // 清理任务逻辑
-    taskQueue.cleanup(olderThan);
+    const queue = accessMode === 'private' ? privateTaskQueue : publicTaskQueue;
+    queue.cleanup(olderThan);
 
-    const stats = taskQueue.getStats();
+    const stats = queue.getStats();
 
     const response: ApiResponse = {
       success: true,

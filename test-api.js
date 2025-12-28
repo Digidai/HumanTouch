@@ -3,6 +3,11 @@ const API_BASE = 'http://localhost:3000/api/v1';
 
 async function testAPI() {
   console.log('🚀 开始测试HumanTouch API...\n');
+  const llmKey = process.env.OPENROUTER_API_KEY || process.env.LLM_API_KEY || '';
+  const useAuth = Boolean(llmKey);
+  if (!useAuth) {
+    console.log('⚠️ 未检测到 LLM API Key，使用公开模式进行测试。\n');
+  }
 
   // 1. 测试用户注册
   console.log('1. 测试用户注册...');
@@ -18,6 +23,8 @@ async function testAPI() {
   const registerData = await registerResponse.json();
   console.log('注册结果:', registerData.success ? '✅ 成功' : '❌ 失败');
   const apiKey = registerData.data?.api_key || 'demo-key';
+  const authHeaders = useAuth ? { 'Authorization': `Bearer ${apiKey}` } : {};
+  const keyPayload = useAuth ? { api_key: llmKey } : {};
 
   // 2. 测试内容处理
   console.log('\n2. 测试内容处理...');
@@ -25,11 +32,12 @@ async function testAPI() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      ...authHeaders
     },
     body: JSON.stringify({
       text: '人工智能生成的文本通常具有高度的逻辑性和一致性，缺乏人类写作中的随机性和个性化特征。这种文本往往过于规整，句式过于完美，缺乏真实人类写作中的不规则性和思维跳跃。',
-      options: { rounds: 3, style: 'academic', target_score: 0.1 }
+      options: { rounds: 3, style: 'academic', target_score: 0.1 },
+      ...keyPayload
     })
   });
   const processData = await processResponse.json();
@@ -45,14 +53,15 @@ async function testAPI() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      ...authHeaders
     },
     body: JSON.stringify({
       texts: [
         'AI生成的文本往往缺乏人类写作的自然特征。',
         '机器学习模型在语言生成方面表现出色，但仍有明显的AI痕迹。'
       ],
-      options: { rounds: 2, style: 'casual' }
+      options: { rounds: 2, style: 'casual' },
+      ...keyPayload
     })
   });
   const batchData = await batchResponse.json();
@@ -68,7 +77,7 @@ async function testAPI() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      ...authHeaders
     },
     body: JSON.stringify({
       text: '这是一个需要检测的文本样本，用于测试AI检测工具的效果。',
@@ -88,11 +97,12 @@ async function testAPI() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      ...authHeaders
     },
     body: JSON.stringify({
       text: '这是一个需要异步处理的文本，测试长任务队列系统。',
-      options: { rounds: 2, style: 'casual' }
+      options: { rounds: 2, style: 'casual' },
+      ...keyPayload
     })
   });
   const asyncData = await asyncResponse.json();
@@ -107,9 +117,7 @@ async function testAPI() {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const statusResponse = await fetch(`${API_BASE}/status/${asyncData.data.task_id}`, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      }
+      headers: authHeaders
     });
     const statusData = await statusResponse.json();
     console.log('状态检查结果:', statusData.success ? '✅ 成功' : '❌ 失败');

@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
-import { useApi, useApiKey } from '@/lib/api-client';
+import { useApi } from '@/lib/api-client';
 
 const styleOptions = [
   { value: 'casual', label: '轻松随意' },
@@ -30,8 +30,7 @@ const styleOptions = [
 ];
 
 export function TextProcessor() {
-  const { apiKey } = useApiKey();
-  const { processText, createAsyncTask, loading, error } = useApi({ apiKey });
+  const { processText, createAsyncTask, loading, error } = useApi();
 
   const [text, setText] = useState('');
   const [options, setOptions] = useState({
@@ -276,7 +275,7 @@ export function TextProcessor() {
           )}
           <Button
             onClick={handleProcess}
-            disabled={loading || !text.trim() || !apiKey}
+            disabled={loading || !text.trim()}
             loading={loading}
             icon={<Play className="w-4 h-4" />}
           >
@@ -444,20 +443,6 @@ export function TextProcessor() {
           </div>
         )}
 
-        {/* No API Key Warning */}
-        {!apiKey && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 animate-fade-in">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-800">需要 API Key</p>
-                <p className="text-sm text-amber-600 mt-1">
-                  请先在页面顶部设置 API Key 以开始使用
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Card>
   );

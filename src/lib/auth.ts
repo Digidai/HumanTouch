@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { headers } from 'next/headers';
 
 export interface AuthUser {
   id: string;
@@ -71,19 +70,7 @@ export class AuthManager {
     }
   }
 
-  validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[]; isLLMKey?: boolean } {
-    // 检查是否是 LLM 提供商的 API Key (用于直接调用 LLM)
-    // OpenRouter keys 以 sk-or- 开头，也支持其他 sk- 格式
-    if (apiKey.startsWith('sk-or-') || apiKey.startsWith('sk-')) {
-      // OpenRouter/OpenAI 格式的 key，允许通过并标记为 LLM Key
-      return {
-        valid: true,
-        userId: 'llm-user',
-        permissions: ['process', 'validate', 'batch', 'async', 'status'],
-        isLLMKey: true,
-      };
-    }
-
+  validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[] } {
     const prefix = process.env.API_KEY_PREFIX || 'hk_';
     if (!apiKey.startsWith(prefix)) {
       return { valid: false };
@@ -132,65 +119,97 @@ export function extractAuthToken(request: NextRequest): string | null {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
 };
 
-export function createAuthMiddleware(requiredPermissions: string[] = []) {
-  return async (request: NextRequest) => {
-    const token = extractAuthToken(request);
+export type AccessMode = 'public' | 'private';
 
-    // 如果没有提供 token，检查服务端是否配置了 API Key
-    if (!token) {
-      // 服务端配置了 OPENROUTER_API_KEY，允许匿名请求
-      if (process.env.OPENROUTER_API_KEY) {
-        return null; // 允许请求，使用服务端配置的 API Key
-      }
-      return NextResponse.json(
-        { error: { code: 'INVALID_API_KEY', message: 'API密钥缺失，请配置 OPENROUTER_API_KEY 或在页面输入您的 API Key' } },
+export interface AccessContext {
+  mode: AccessMode;
+  userId?: string;
+  permissions?: string[];
+}
+
+export function resolveAccess(
+  request: NextRequest,
+  requiredPermissions: string[] = [],
+  allowPublic: boolean = true
+): { context?: AccessContext; response?: NextResponse } {
+  const token = extractAuthToken(request);
+
+  if (!token) {
+    if (allowPublic) {
+      return { context: { mode: 'public' } };
+    }
+    return {
+      response: NextResponse.json(
+        { error: { code: 'INVALID_API_KEY', message: 'API密钥缺失' } },
         { status: 401, headers: corsHeaders }
-      );
-    }
+      ),
+    };
+  }
 
-    const authManager = AuthManager.getInstance();
-    
-    // 先尝试作为API密钥验证
-    const apiKeyValidation = authManager.validateApiKey(token);
-    if (apiKeyValidation.valid) {
-      // 检查权限
-      const hasPermission = requiredPermissions.length === 0 || 
-        requiredPermissions.some(perm => apiKeyValidation.permissions?.includes(perm));
-      
-      if (!hasPermission) {
-        return NextResponse.json(
+  const authManager = AuthManager.getInstance();
+
+  const apiKeyValidation = authManager.validateApiKey(token);
+  if (apiKeyValidation.valid) {
+    const hasPermission = requiredPermissions.length === 0 ||
+      requiredPermissions.some(perm => apiKeyValidation.permissions?.includes(perm));
+
+    if (!hasPermission) {
+      return {
+        response: NextResponse.json(
           { error: { code: 'INSUFFICIENT_PERMISSIONS', message: '权限不足' } },
           { status: 403, headers: corsHeaders }
-        );
-      }
-
-      return null; // 验证通过
+        ),
+      };
     }
 
-    // 尝试作为JWT令牌验证
-    const user = authManager.verifyJwtToken(token);
-    if (user) {
-      const hasPermission = requiredPermissions.length === 0 ||
-        requiredPermissions.some(perm => user.permissions.includes(perm));
+    return {
+      context: {
+        mode: 'private',
+        userId: apiKeyValidation.userId,
+        permissions: apiKeyValidation.permissions,
+      },
+    };
+  }
 
-      if (!hasPermission) {
-        return NextResponse.json(
+  const user = authManager.verifyJwtToken(token);
+  if (user) {
+    const hasPermission = requiredPermissions.length === 0 ||
+      requiredPermissions.some(perm => user.permissions.includes(perm));
+
+    if (!hasPermission) {
+      return {
+        response: NextResponse.json(
           { error: { code: 'INSUFFICIENT_PERMISSIONS', message: '权限不足' } },
           { status: 403, headers: corsHeaders }
-        );
-      }
-
-      return null; // 验证通过
+        ),
+      };
     }
 
-    return NextResponse.json(
+    return {
+      context: {
+        mode: 'private',
+        userId: user.id,
+        permissions: user.permissions,
+      },
+    };
+  }
+
+  return {
+    response: NextResponse.json(
       { error: { code: 'INVALID_API_KEY', message: '无效的API密钥或令牌' } },
       { status: 401, headers: corsHeaders }
-    );
+    ),
+  };
+}
+
+export function createAuthMiddleware(requiredPermissions: string[] = []) {
+  return async (request: NextRequest) => {
+    const { response } = resolveAccess(request, requiredPermissions, false);
+    return response ?? null;
   };
 }
 

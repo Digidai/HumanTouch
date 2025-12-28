@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Upload, Download, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { useApi, useApiKey } from '@/lib/api-client';
+import { useApi } from '@/lib/api-client';
 
 interface BatchTask {
   id: string;
@@ -23,8 +23,7 @@ interface BatchTask {
 }
 
 export function BatchProcessor() {
-  const { apiKey } = useApiKey();
-  const { batchProcess, loading, error } = useApi({ apiKey });
+  const { batchProcess, loading, error } = useApi();
   
   const [files, setFiles] = useState<File[]>([]);
   const [tasks, setTasks] = useState<BatchTask[]>([]);
@@ -85,11 +84,6 @@ export function BatchProcessor() {
 
   const processBatch = async () => {
     if (files.length === 0) return;
-
-    if (!apiKey) {
-      setNotice('请先设置 API Key 再进行批量处理');
-      return;
-    }
     
     const fileContents = await Promise.all(
       files.map(async file => {
@@ -218,7 +212,6 @@ export function BatchProcessor() {
             />
             <Button
               onClick={() => document.getElementById('file-upload')?.click()}
-              disabled={!apiKey}
             >
               选择文件
             </Button>
@@ -310,7 +303,7 @@ export function BatchProcessor() {
           <div className="space-x-2">
             <Button
               onClick={processBatch}
-              disabled={files.length === 0 || loading || !apiKey}
+              disabled={files.length === 0 || loading}
               loading={loading}
             >
               开始批量处理
@@ -349,15 +342,6 @@ export function BatchProcessor() {
             </Button>
           </div>
         </div>
-
-        {!apiKey && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-              <p className="text-sm text-yellow-800">请先设置API密钥以使用批量处理功能</p>
-            </div>
-          </div>
-        )}
 
         {notice && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

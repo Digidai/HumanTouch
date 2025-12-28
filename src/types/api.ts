@@ -16,6 +16,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface ProcessRequest {
   text: string;
+  api_key?: string; // LLM API Key for authenticated API requests
   options?: {
     rounds?: number;
     style?: 'academic' | 'casual' | 'professional' | 'creative';
@@ -42,10 +43,12 @@ export interface ProcessResponse {
 
 export interface BatchRequest {
   texts: string[];
+  api_key?: string; // LLM API Key for authenticated API requests
   options?: {
     rounds?: number;
     style?: 'academic' | 'casual' | 'professional' | 'creative';
     target_score?: number;
+    model?: string;
   };
   filenames?: string[];
 }
@@ -66,10 +69,13 @@ export interface BatchResponse {
 
 export interface AsyncTaskRequest {
   text: string;
+  api_key?: string; // LLM API Key for authenticated API requests
   options?: {
     rounds?: number;
     style?: string;
     notify_url?: string;
+    target_score?: number;
+    model?: string;
   };
 }
 

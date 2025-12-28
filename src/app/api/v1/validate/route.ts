@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { detectorClient } from '@/lib/detectors';
-import { createAuthMiddleware } from '@/lib/auth';
+import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ValidateRequest, ValidateResponse, ApiResponse } from '@/types/api';
 
@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['validate'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { response: authResponse } = resolveAccess(request, ['validate'], true);
+    if (authResponse) return authResponse;
 
     const body: ValidateRequest = await request.json();
     

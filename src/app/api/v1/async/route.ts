@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { taskQueue } from '@/lib/taskqueue';
-import { createAuthMiddleware } from '@/lib/auth';
+import { publicTaskQueue, privateTaskQueue } from '@/lib/taskqueue';
+import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { AsyncTaskRequest, ApiResponse } from '@/types/api';
 
@@ -12,9 +12,10 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['process', 'async'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { context, response: authResponse } = resolveAccess(request, ['process', 'async'], true);
+    if (authResponse) return authResponse;
+    const accessMode = context?.mode || 'public';
 
     const body: AsyncTaskRequest = await request.json();
     
@@ -63,12 +64,63 @@ export async function POST(request: NextRequest) {
     const rounds = body.options?.rounds || 3;
     const style = body.options?.style || 'casual';
     const webhook_url = body.options?.notify_url;
+    const model = accessMode === 'private' ? body.options?.model : undefined;
+
+    const llmApiKey = body.api_key || (body as { key?: string }).key;
+    if (accessMode === 'private' && !llmApiKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'LLM_API_KEY_REQUIRED',
+            message: '需要提供 LLM API Key',
+            details: '请在参数中传入 api_key 或 key',
+          },
+          meta: {
+            request_id: requestId,
+            timestamp: new Date().toISOString(),
+            api_version: 'v1',
+          },
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    if (accessMode === 'public' && body.options?.model) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'MODEL_NOT_ALLOWED',
+            message: '公开模式仅支持默认模型',
+            details: '请移除 model 参数',
+          },
+          meta: {
+            request_id: requestId,
+            timestamp: new Date().toISOString(),
+            api_version: 'v1',
+          },
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
 
     // 估算处理时间（基于文本长度和轮数）
     const estimatedTime = Math.max(1, Math.ceil(text.length / 1000) * rounds);
 
     // 添加任务到队列
-    const taskId = taskQueue.addTask(text, { rounds, style }, webhook_url);
+    const queue = accessMode === 'private' ? privateTaskQueue : publicTaskQueue;
+    const taskId = queue.addTask(
+      text,
+      {
+        rounds,
+        style,
+        target_score: body.options?.target_score,
+        model,
+      },
+      webhook_url,
+      accessMode === 'private' ? llmApiKey : undefined
+    );
 
     const response: ApiResponse = {
       success: true,

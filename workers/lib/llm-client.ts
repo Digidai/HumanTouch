@@ -36,11 +36,12 @@ export class LLMClient {
   private detectorClient: DetectorClient;
   private siteUrl: string;
 
-  constructor(env: Env) {
-    this.provider = this.detectProvider(env);
-    this.apiKey = this.getApiKey(env);
-    this.model = this.getDefaultModel(env);
-    this.baseUrl = env.CUSTOM_LLM_BASE_URL || PROVIDER_CONFIG[this.provider].baseUrl;
+  constructor(env: Env, overrides?: { apiKey?: string; model?: string; provider?: LLMProvider; baseUrl?: string }) {
+    const defaultProvider = overrides?.provider || (overrides?.apiKey ? 'openrouter' : this.detectProvider(env));
+    this.provider = defaultProvider;
+    this.apiKey = overrides?.apiKey || this.getApiKey(env);
+    this.model = overrides?.model || this.getDefaultModel(env);
+    this.baseUrl = overrides?.baseUrl || env.CUSTOM_LLM_BASE_URL || PROVIDER_CONFIG[this.provider].baseUrl;
     this.detectorClient = new DetectorClient(env);
     this.siteUrl = env.SITE_URL || 'https://humantouch.dev';
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLLMClient } from '@/lib/llm-client';
-import { createAuthMiddleware } from '@/lib/auth';
+import { getLLMClient, LLMClient } from '@/lib/llm-client';
+import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { BatchRequest, BatchResponse, ApiResponse } from '@/types/api';
 
@@ -13,9 +13,10 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await rateLimitMiddleware(request);
     if (rateLimitResult) return rateLimitResult;
 
-    // 应用认证中间件
-    const authResult = await createAuthMiddleware(['process', 'batch'])(request);
-    if (authResult) return authResult;
+    // 解析访问模式（公开网页 or 鉴权 API）
+    const { context, response: authResponse } = resolveAccess(request, ['process', 'batch'], true);
+    if (authResponse) return authResponse;
+    const accessMode = context?.mode || 'public';
 
     const body: BatchRequest = await request.json();
     
@@ -85,14 +86,58 @@ export async function POST(request: NextRequest) {
 
     const rounds = body.options?.rounds || 2;
     const style = body.options?.style || 'casual';
+    const model = accessMode === 'private' ? body.options?.model : undefined;
+
+    const llmApiKey = body.api_key || (body as { key?: string }).key;
+    if (accessMode === 'private' && !llmApiKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'LLM_API_KEY_REQUIRED',
+            message: '需要提供 LLM API Key',
+            details: '请在参数中传入 api_key 或 key',
+          },
+          meta: {
+            request_id: requestId,
+            timestamp: new Date().toISOString(),
+            api_version: 'v1',
+          },
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    if (accessMode === 'public' && body.options?.model) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'MODEL_NOT_ALLOWED',
+            message: '公开模式仅支持默认模型',
+            details: '请移除 model 参数',
+          },
+          meta: {
+            request_id: requestId,
+            timestamp: new Date().toISOString(),
+            api_version: 'v1',
+          },
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
 
     // 批量处理文本
-    const llmClient = getLLMClient();
+    const llmClient = accessMode === 'private'
+      ? new LLMClient({ provider: 'openrouter', apiKey: llmApiKey })
+      : getLLMClient();
     const results = await Promise.all(
       texts.map(async (text) => {
         const result = await llmClient.processText(text, {
           rounds,
           style,
+          targetScore: body.options?.target_score,
+          model,
         });
 
         return {

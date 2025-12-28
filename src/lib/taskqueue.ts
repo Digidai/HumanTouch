@@ -8,7 +8,9 @@ export interface Task {
     rounds?: number;
     style?: string;
     target_score?: number;
+    model?: string;
   };
+  llmApiKey?: string;
   result?: ProcessResponse;
   error?: string;
   webhook_url?: string;
@@ -25,13 +27,19 @@ export class TaskQueue {
   private cache: Map<string, { result: ProcessResponse; timestamp: number }> = new Map();
   private static readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
 
-  addTask(text: string, options: Record<string, unknown> = {}, webhook_url?: string): string {
+  addTask(
+    text: string,
+    options: Task['options'] = {},
+    webhook_url?: string,
+    llmApiKey?: string
+  ): string {
     const taskId = this.generateTaskId();
     const task: Task = {
       id: taskId,
       status: 'pending',
       text,
       options,
+      llmApiKey,
       webhook_url,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -54,13 +62,13 @@ export class TaskQueue {
     return `task_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
-  private generateCacheKey(text: string, options: unknown): string {
-    const key = JSON.stringify({ text, options });
+  private generateCacheKey(text: string, options: unknown, llmApiKey?: string): string {
+    const key = JSON.stringify({ text, options, llmApiKey });
     return Buffer.from(key).toString('base64');
   }
 
-  getCachedResult(text: string, options: any): ProcessResponse | null {
-    const cacheKey = this.generateCacheKey(text, options);
+  getCachedResult(text: string, options: Task['options'], llmApiKey?: string): ProcessResponse | null {
+    const cacheKey = this.generateCacheKey(text, options, llmApiKey);
     const cached = this.cache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < TaskQueue.CACHE_TTL) {
@@ -75,8 +83,8 @@ export class TaskQueue {
     return null;
   }
 
-  setCachedResult(text: string, options: any, result: ProcessResponse): void {
-    const cacheKey = this.generateCacheKey(text, options);
+  setCachedResult(text: string, options: Task['options'], result: ProcessResponse, llmApiKey?: string): void {
+    const cacheKey = this.generateCacheKey(text, options, llmApiKey);
     this.cache.set(cacheKey, {
       result,
       timestamp: Date.now()
@@ -107,7 +115,7 @@ export class TaskQueue {
     }
 
     // 检查缓存
-    const cachedResult = this.getCachedResult(task.text, task.options);
+    const cachedResult = this.getCachedResult(task.text, task.options, task.llmApiKey);
     if (cachedResult) {
       task.status = 'completed';
       task.result = cachedResult;
@@ -127,10 +135,24 @@ export class TaskQueue {
     task.updated_at = new Date().toISOString();
 
     try {
-      const { getLLMClient } = await import('./llm-client');
-      const llmClient = getLLMClient();
+      let llmClient;
+      if (task.llmApiKey) {
+        const { LLMClient } = await import('./llm-client');
+        llmClient = new LLMClient({
+          provider: 'openrouter',
+          apiKey: task.llmApiKey,
+        });
+      } else {
+        const { getLLMClient } = await import('./llm-client');
+        llmClient = getLLMClient();
+      }
 
-      const processingResult = await llmClient.processText(task.text, task.options);
+      const processingResult = await llmClient.processText(task.text, {
+        rounds: task.options.rounds,
+        style: task.options.style,
+        targetScore: task.options.target_score,
+        model: task.options.model,
+      });
       
       // 转换为ProcessResponse格式
       const result: ProcessResponse = {
@@ -143,7 +165,7 @@ export class TaskQueue {
       };
       
       // 缓存结果
-      this.setCachedResult(task.text, task.options, result);
+      this.setCachedResult(task.text, task.options, result, task.llmApiKey);
       
       task.status = 'completed';
       task.result = result;
@@ -263,4 +285,6 @@ export class TaskQueue {
 }
 
 // 全局任务队列实例
-export const taskQueue = new TaskQueue();
+export const publicTaskQueue = new TaskQueue();
+export const privateTaskQueue = new TaskQueue();
+export const taskQueue = publicTaskQueue;
