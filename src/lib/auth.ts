@@ -129,14 +129,20 @@ export function extractAuthToken(request: NextRequest): string | null {
   return parts[1];
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+};
+
 export function createAuthMiddleware(requiredPermissions: string[] = []) {
   return async (request: NextRequest) => {
     const token = extractAuthToken(request);
-    
+
     if (!token) {
       return NextResponse.json(
         { error: { code: 'INVALID_API_KEY', message: 'API密钥缺失' } },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -152,7 +158,7 @@ export function createAuthMiddleware(requiredPermissions: string[] = []) {
       if (!hasPermission) {
         return NextResponse.json(
           { error: { code: 'INSUFFICIENT_PERMISSIONS', message: '权限不足' } },
-          { status: 403 }
+          { status: 403, headers: corsHeaders }
         );
       }
 
@@ -162,13 +168,13 @@ export function createAuthMiddleware(requiredPermissions: string[] = []) {
     // 尝试作为JWT令牌验证
     const user = authManager.verifyJwtToken(token);
     if (user) {
-      const hasPermission = requiredPermissions.length === 0 || 
+      const hasPermission = requiredPermissions.length === 0 ||
         requiredPermissions.some(perm => user.permissions.includes(perm));
-      
+
       if (!hasPermission) {
         return NextResponse.json(
           { error: { code: 'INSUFFICIENT_PERMISSIONS', message: '权限不足' } },
-          { status: 403 }
+          { status: 403, headers: corsHeaders }
         );
       }
 
@@ -177,7 +183,7 @@ export function createAuthMiddleware(requiredPermissions: string[] = []) {
 
     return NextResponse.json(
       { error: { code: 'INVALID_API_KEY', message: '无效的API密钥或令牌' } },
-      { status: 401 }
+      { status: 401, headers: corsHeaders }
     );
   };
 }

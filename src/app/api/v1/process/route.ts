@@ -4,6 +4,17 @@ import { createAuthMiddleware, extractAuthToken } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse, ApiResponse } from '@/types/api';
 
+// Vercel Serverless Function 配置
+export const maxDuration = 60; // 60秒超时，足够多轮 LLM 处理
+export const dynamic = 'force-dynamic';
+
+// CORS 响应头
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+};
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(2, 15);
@@ -35,7 +46,7 @@ export async function POST(request: NextRequest) {
             api_version: 'v1',
           },
         } as ApiResponse,
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -57,7 +68,7 @@ export async function POST(request: NextRequest) {
             api_version: 'v1',
           },
         } as ApiResponse,
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -108,7 +119,10 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    return NextResponse.json(response, { status: 200 });
+    return NextResponse.json(response, {
+      status: 200,
+      headers: corsHeaders,
+    });
 
   } catch (error) {
     console.error('Error processing text:', error);
@@ -155,18 +169,14 @@ export async function POST(request: NextRequest) {
           api_version: 'v1',
         },
       } as ApiResponse,
-      { status }
+      { status, headers: corsHeaders }
     );
   }
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'POST, OPTIONS',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
   });
 }
