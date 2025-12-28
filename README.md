@@ -209,7 +209,7 @@ Configure ONE of the following in your environment:
 #### Option 1: OpenRouter (Default - 200+ models)
 ```env
 OPENROUTER_API_KEY=sk-or-your-openrouter-key
-OPENROUTER_MODEL=google/gemini-2.5-flash-preview  # Default model (fast & affordable)
+OPENROUTER_MODEL=google/gemini-2.0-flash-exp:free  # Default model (fast & free)
 ```
 
 #### Option 2: Custom OpenAI-Compatible API
@@ -231,7 +231,7 @@ If multiple providers are configured:
 |----------|----------|---------|-------------|
 | **LLM - OpenRouter (Default)** |
 | `OPENROUTER_API_KEY` | ✅* | - | OpenRouter API key |
-| `OPENROUTER_MODEL` | ❌ | `google/gemini-2.5-flash-preview` | Default model |
+| `OPENROUTER_MODEL` | ❌ | `google/gemini-2.0-flash-exp:free` | Default model |
 | **LLM - Custom** |
 | `CUSTOM_LLM_API_KEY` | ✅* | - | Custom API key |
 | `CUSTOM_LLM_BASE_URL` | ✅* | - | Custom API base URL |

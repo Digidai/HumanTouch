@@ -98,11 +98,11 @@ export class LLMClient {
   private getDefaultModel(): string {
     switch (this.provider) {
       case 'openrouter':
-        return process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-preview';
+        return process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
       case 'custom':
         return process.env.CUSTOM_LLM_MODEL || 'gpt-4';
       default:
-        return 'google/gemini-2.5-flash-preview';
+        return 'google/gemini-2.0-flash-exp:free';
     }
   }
 
