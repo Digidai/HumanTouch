@@ -16,7 +16,7 @@
 
 [English](#features) | [中文文档](#功能特性)
 
-[Demo](https://humantouch.dev) · [Documentation](docs/) · [Report Bug](https://github.com/Digidai/HumanTouch/issues) · [Request Feature](https://github.com/Digidai/HumanTouch/issues)
+[Documentation](docs/) · [API Guide](docs/api/usage-guide.md) · [Report Bug](https://github.com/Digidai/HumanTouch/issues) · [Request Feature](https://github.com/Digidai/HumanTouch/issues)
 
 </div>
 
@@ -82,12 +82,15 @@ Use any API that follows OpenAI's chat completions format (e.g., local LLMs, sel
 
 ### Use Online (No Setup Required)
 
-Visit the deployed app and start immediately (no API key required):
-1. Open the app
-2. Paste your text
-3. Start processing (uses the server default model)
+Visit the deployed app and start immediately:
 
-To select a model or use your own LLM key, use the API with `api_key`.
+1. **Quick mode**: Just paste text and process (uses server default model)
+2. **Custom mode**: Click the settings icon in header to configure your own OpenRouter API key and model
+
+The web UI supports:
+- Processing without any configuration (uses server's default model)
+- Custom OpenRouter API key + model selection for more control
+- Real-time progress tracking and detection score display
 
 ### One-Click Deploy
 
@@ -415,14 +418,17 @@ Different writing contexts require different approaches:
 │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   API Layer (Vercel)                         │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │  /api/v1/process  │  /api/v1/validate  │  /api/v1/*  │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                              │
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+┌──────────────────────────┐    ┌──────────────────────────┐
+│   Vercel (Recommended)   │    │   Cloudflare Workers     │
+│  ┌────────────────────┐  │    │  ┌────────────────────┐  │
+│  │  Next.js API       │  │    │  │  Edge Runtime      │  │
+│  │  /api/v1/*         │  │    │  │  Global Low-Latency│  │
+│  └────────────────────┘  │    │  └────────────────────┘  │
+└──────────────────────────┘    └──────────────────────────┘
+              │                               │
+              └───────────────┬───────────────┘
                               ▼
                     ┌─────────────────┐
                     │   OpenRouter    │
@@ -449,6 +455,24 @@ Or deploy via CLI:
 npm run deploy
 ```
 
+### Cloudflare Workers
+
+For edge deployment with global low-latency:
+
+```bash
+# Install Wrangler CLI
+npm install -g wrangler
+
+# Configure secrets
+wrangler secret put OPENROUTER_API_KEY
+wrangler secret put JWT_SECRET
+
+# Deploy
+npm run deploy:cf
+```
+
+See [CLOUDFLARE.md](CLOUDFLARE.md) for detailed Cloudflare Workers deployment guide.
+
 ---
 
 ## 🤝 Contributing
@@ -467,6 +491,34 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 - [OpenRouter](https://openrouter.ai/) - Multi-model API gateway (200+ models)
 - [ZeroGPT](https://zerogpt.com/), [GPTZero](https://gptzero.me/), [Copyleaks](https://copyleaks.com/) - AI detection
+
+---
+
+## 功能特性
+
+> 中文文档
+
+### 核心功能
+
+- **多轮处理**: 通过多轮迭代优化，逐步降低 AI 检测分数
+- **多检测器验证**: 同时验证 ZeroGPT、GPTZero、Copyleaks
+- **多模型支持**: 通过 OpenRouter 支持 200+ 模型
+- **边缘部署**: 支持 Vercel 和 Cloudflare Workers
+
+### 使用方式
+
+1. **在线使用**: 直接访问部署的应用，无需配置即可开始
+2. **自定义模型**: 在页面顶部点击设置图标，配置您的 OpenRouter API Key 和模型
+3. **API 调用**: 使用 Bearer Token 认证进行程序化调用
+
+### 技术亮点
+
+- 6 轮针对性处理策略（AI 模式消除、句法重组、词汇多样化等）
+- 自适应策略系统，根据检测器分数动态调整处理方向
+- 4 种风格差异化处理（轻松随意、学术正式、专业商务、创意写作）
+- 长文本智能分段处理，支持 30,000 字符
+
+详细技术文档请参阅 [人性化策略详解](docs/humanization-strategy.md)。
 
 ---
 
