@@ -83,10 +83,10 @@ export class LLMClient {
   }
 
   private detectProvider(): LLMProvider {
-    if (process.env.OPENROUTER_API_KEY) return 'openrouter';
     if (process.env.MOONSHOT_API_KEY) return 'moonshot';
+    if (process.env.OPENROUTER_API_KEY) return 'openrouter';
     if (process.env.CUSTOM_LLM_API_KEY && process.env.CUSTOM_LLM_BASE_URL) return 'custom';
-    return 'openrouter'; // 默认使用 OpenRouter
+    return 'moonshot'; // 默认使用 Moonshot
   }
 
   private getApiKey(): string {
@@ -111,7 +111,7 @@ export class LLMClient {
       case 'custom':
         return process.env.CUSTOM_LLM_MODEL || 'gpt-4';
       default:
-        return 'google/gemini-2.5-flash-preview';
+        return 'kimi-k2-0711-preview';
     }
   }
 

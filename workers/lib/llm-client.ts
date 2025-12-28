@@ -50,10 +50,10 @@ export class LLMClient {
   }
 
   private detectProvider(env: Env): LLMProvider {
-    if (env.OPENROUTER_API_KEY) return 'openrouter';
     if (env.MOONSHOT_API_KEY) return 'moonshot';
+    if (env.OPENROUTER_API_KEY) return 'openrouter';
     if (env.CUSTOM_LLM_API_KEY && env.CUSTOM_LLM_BASE_URL) return 'custom';
-    return 'openrouter'; // 默认使用 OpenRouter
+    return 'moonshot'; // 默认使用 Moonshot
   }
 
   private getApiKey(env: Env): string {
