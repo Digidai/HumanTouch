@@ -38,7 +38,7 @@ Validate against ZeroGPT, GPTZero, and Copyleaks simultaneously for comprehensiv
 <td width="50%">
 
 ### 🤖 Multi-Model Support
-Use **any model** via OpenRouter, Moonshot, or any OpenAI-compatible API. Full flexibility to choose your preferred LLM.
+Use **any model** via OpenRouter (200+ models) or any OpenAI-compatible API. Full flexibility to choose your preferred LLM.
 
 ### 🌍 Edge Deployment
 Deploy to Vercel or Cloudflare Workers for global low-latency access.
@@ -71,15 +71,6 @@ cohere/command-r-plus
 ```
 
 Browse all available models at: https://openrouter.ai/models
-
-### Moonshot (Default)
-
-```bash
-kimi-k2-0711-preview   # Latest Kimi model (default)
-moonshot-v1-8k         # 8K context
-moonshot-v1-32k        # 32K context
-moonshot-v1-128k       # 128K context
-```
 
 ### Custom API (Any OpenAI-compatible endpoint)
 
@@ -215,19 +206,13 @@ curl -X POST https://your-domain.com/api/v1/process \
 
 Configure ONE of the following in your environment:
 
-#### Option 1: OpenRouter (Recommended - 200+ models)
+#### Option 1: OpenRouter (Default - 200+ models)
 ```env
 OPENROUTER_API_KEY=sk-or-your-openrouter-key
 OPENROUTER_MODEL=google/gemini-2.5-flash-preview  # Default model (fast & affordable)
 ```
 
-#### Option 2: Moonshot
-```env
-MOONSHOT_API_KEY=sk-your-moonshot-key
-MOONSHOT_MODEL=kimi-k2-0711-preview
-```
-
-#### Option 3: Custom OpenAI-Compatible API
+#### Option 2: Custom OpenAI-Compatible API
 ```env
 CUSTOM_LLM_API_KEY=your-api-key
 CUSTOM_LLM_BASE_URL=https://your-api.com/v1
@@ -238,19 +223,15 @@ CUSTOM_LLM_MODEL=your-model-name
 
 If multiple providers are configured:
 1. **OpenRouter** (if `OPENROUTER_API_KEY` is set)
-2. **Moonshot** (if `MOONSHOT_API_KEY` is set)
-3. **Custom** (if `CUSTOM_LLM_API_KEY` and `CUSTOM_LLM_BASE_URL` are set)
+2. **Custom** (if `CUSTOM_LLM_API_KEY` and `CUSTOM_LLM_BASE_URL` are set)
 
 ### All Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| **LLM - OpenRouter** |
+| **LLM - OpenRouter (Default)** |
 | `OPENROUTER_API_KEY` | ✅* | - | OpenRouter API key |
 | `OPENROUTER_MODEL` | ❌ | `google/gemini-2.5-flash-preview` | Default model |
-| **LLM - Moonshot** |
-| `MOONSHOT_API_KEY` | ✅* | - | Moonshot API key |
-| `MOONSHOT_MODEL` | ❌ | `kimi-k2-0711-preview` | Default model |
 | **LLM - Custom** |
 | `CUSTOM_LLM_API_KEY` | ✅* | - | Custom API key |
 | `CUSTOM_LLM_BASE_URL` | ✅* | - | Custom API base URL |
@@ -322,12 +303,12 @@ If multiple providers are configured:
 │         Vercel Serverless    OR    Cloudflare Workers        │
 └─────────────────────────────────────────────────────────────┘
                               │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│   OpenRouter    │ │    Moonshot     │ │   Custom LLM    │
-│  (200+ Models)  │ │  (Kimi Models)  │ │ (OpenAI-compat) │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+          ┌─────────────────┐ ┌─────────────────┐
+          │   OpenRouter    │ │   Custom LLM    │
+          │  (200+ Models)  │ │ (OpenAI-compat) │
+          └─────────────────┘ └─────────────────┘
 ```
 
 ---
@@ -371,8 +352,7 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [OpenRouter](https://openrouter.ai/) - Multi-model API gateway
-- [Moonshot AI](https://moonshot.cn/) - Kimi models
+- [OpenRouter](https://openrouter.ai/) - Multi-model API gateway (200+ models)
 - [ZeroGPT](https://zerogpt.com/), [GPTZero](https://gptzero.me/), [Copyleaks](https://copyleaks.com/) - AI detection
 
 ---
