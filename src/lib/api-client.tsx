@@ -66,11 +66,17 @@ export function useApi(options: UseApiOptions = {}) {
           details: e.details,
           httpStatus: e.httpStatus,
         };
-      } else {
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
         apiError = {
           code: 'NETWORK_ERROR',
-          message: '网络请求失败',
-          details: err instanceof Error ? err.message : String(err),
+          message: '无法连接到服务器',
+          details: '请检查网络连接后重试',
+        };
+      } else {
+        apiError = {
+          code: 'REQUEST_ERROR',
+          message: err instanceof Error ? err.message : '请求失败',
+          details: err instanceof Error ? err.stack : String(err),
         };
       }
 

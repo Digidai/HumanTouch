@@ -325,13 +325,21 @@ export function TextProcessor() {
           <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-fade-in">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-red-800">处理出错</p>
                 <p className="text-sm text-red-600 mt-1">
-                  {error.code === 'RATE_LIMIT_EXCEEDED'
-                    ? '请求过于频繁，请稍后再试。'
-                    : error.message || '处理过程中出现错误，请稍后重试。'}
+                  {error.message || '处理过程中出现错误，请稍后重试。'}
                 </p>
+                {error.details && (
+                  <details className="mt-2">
+                    <summary className="text-xs text-red-500 cursor-pointer hover:text-red-700">
+                      查看详细信息
+                    </summary>
+                    <pre className="mt-2 text-xs text-red-500 bg-red-100/50 p-2 rounded overflow-x-auto">
+                      {error.details}
+                    </pre>
+                  </details>
+                )}
               </div>
             </div>
           </div>

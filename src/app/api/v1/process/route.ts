@@ -112,14 +112,42 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error processing text:', error);
-    
+
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+
+    // 解析更具体的错误类型
+    let code = 'INTERNAL_ERROR';
+    let message = '处理失败';
+    let status = 500;
+
+    if (errorMessage.includes('API key is required')) {
+      code = 'API_KEY_REQUIRED';
+      message = '需要配置 API Key';
+      status = 401;
+    } else if (errorMessage.includes('401') || errorMessage.includes('Invalid Authentication')) {
+      code = 'INVALID_API_KEY';
+      message = 'API Key 无效，请检查您的 Moonshot API Key 是否正确';
+      status = 401;
+    } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+      code = 'RATE_LIMIT';
+      message = 'API 调用次数超限，请稍后再试';
+      status = 429;
+    } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+      code = 'TIMEOUT';
+      message = '请求超时，请稍后重试';
+      status = 504;
+    } else if (errorMessage.includes('LLM API error')) {
+      code = 'LLM_ERROR';
+      message = 'LLM 服务调用失败';
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: 'INTERNAL_ERROR',
-          message: '内部服务器错误',
-          details: error instanceof Error ? error.message : '未知错误',
+          code,
+          message,
+          details: errorMessage,
         },
         meta: {
           request_id: requestId,
@@ -127,7 +155,7 @@ export async function POST(request: NextRequest) {
           api_version: 'v1',
         },
       } as ApiResponse,
-      { status: 500 }
+      { status }
     );
   }
 }
