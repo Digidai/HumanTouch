@@ -1,0 +1,211 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "refresh": "Refresh",
+    "view": "View",
+    "remove": "Remove",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "processing": "Processing",
+    "pending": "Pending",
+    "completed": "Completed",
+    "failed": "Failed"
+  },
+  "metadata": {
+    "title": "HumanTouch - AI Content Humanization",
+    "description": "Transform AI-generated text into natural human writing style, effectively reducing AI detection rates",
+    "keywords": "AI,humanization,text processing,AI detection,content optimization"
+  },
+  "header": {
+    "brand": "HumanTouch",
+    "tagline": "AI Content Humanization",
+    "customModel": "Custom Model",
+    "publicMode": "Public · Default Model",
+    "settings": {
+      "title": "Custom LLM Settings",
+      "apiKey": "OpenRouter API Key",
+      "apiKeyPlaceholder": "sk-or-v1-...",
+      "apiKeyHint": "Get from",
+      "model": "Model Name",
+      "modelPlaceholder": "anthropic/claude-sonnet-4",
+      "modelHint": "OpenRouter model ID, e.g. openai/gpt-4o, anthropic/claude-sonnet-4",
+      "notice": "Once configured, processing will use your API Key and specified model. Otherwise, the server default model will be used.",
+      "clear": "Clear Config",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
+  },
+  "dashboard": {
+    "hero": {
+      "badge": "AI Content Optimization",
+      "title": "Make AI Text More ",
+      "highlight": "Human",
+      "description": "Transform AI-generated text into natural human writing style through intelligent multi-round processing, effectively reducing AI detection rates"
+    },
+    "stats": {
+      "today": "Today",
+      "times": "",
+      "processCount": "Texts Processed",
+      "average": "Average",
+      "percent": "%",
+      "detectionScore": "AI Detection Score",
+      "aiScore": "AI Detection Score",
+      "efficiency": "Efficiency",
+      "seconds": "s",
+      "avgTime": "Avg Processing Time"
+    },
+    "tabs": {
+      "process": "Text Processing",
+      "batch": "Batch Processing",
+      "monitor": "Task Monitor"
+    },
+    "footer": {
+      "brand": "HumanTouch",
+      "tagline": "AI Content Humanization",
+      "slogan": "Adding warmth to every piece of text"
+    }
+  },
+  "processor": {
+    "title": "Text Processing",
+    "description": "Transform AI-generated text into natural human writing style",
+    "input": {
+      "label": "Input Text",
+      "placeholder": "Paste your AI-generated text here...",
+      "longTextHint": "Long text will be automatically chunked",
+      "hint": "Supports long text with automatic chunking",
+      "charCount": "{count}/30,000",
+      "required": "Please enter the text to process"
+    },
+    "options": {
+      "style": "Writing Style",
+      "rounds": "Processing Rounds",
+      "targetScore": "Target Score",
+      "targetScoreHint": "0.0-1.0, lower is harder to detect",
+      "mode": "Processing Mode",
+      "syncMode": "Synchronous",
+      "syncModeHint": "Real-time result",
+      "asyncMode": "Async Task",
+      "asyncModeHint": "For long text",
+      "webhookUrl": "Webhook URL (Optional)",
+      "webhookUrlHint": "Notification will be sent to this URL when task completes",
+      "styles": {
+        "casual": "Casual",
+        "academic": "Academic",
+        "professional": "Professional",
+        "creative": "Creative"
+      }
+    },
+    "actions": {
+      "clear": "Clear",
+      "process": "Start Processing",
+      "createTask": "Create Task"
+    },
+    "progress": {
+      "processing": "Processing",
+      "analyzing": "Analyzing text structure...",
+      "round1": "Round 1: Humanization...",
+      "round2": "Round 2: Syntax restructuring...",
+      "round3": "Round 3: Style optimization...",
+      "detecting": "Running AI detection...",
+      "generating": "Generating final result...",
+      "completed": "Processing complete!",
+      "stages": {
+        "analyze": "Analyze",
+        "r1": "Round 1",
+        "r2": "Round 2",
+        "r3": "Round 3",
+        "detect": "Detect",
+        "done": "Done"
+      },
+      "tip": "Multi-round processing effectively reduces AI detection scores. Please wait..."
+    },
+    "results": {
+      "title": "Results",
+      "copy": "Copy Result",
+      "copied": "Copied",
+      "processingTime": "Processing Time",
+      "processedText": "Processed Text",
+      "chars": "chars",
+      "asyncCreated": "Async task created",
+      "taskId": "Task ID"
+    },
+    "error": {
+      "title": "Processing Error",
+      "message": "An error occurred during processing. Please try again later.",
+      "details": "View details"
+    }
+  },
+  "batch": {
+    "title": "Batch Processing",
+    "description": "Upload and process multiple text files at once",
+    "upload": {
+      "dragDrop": "Drag and drop files here or click to upload",
+      "formats": "Supports .txt and .md files",
+      "selectFiles": "Select Files"
+    },
+    "table": {
+      "filename": "Filename",
+      "status": "Status",
+      "size": "Size",
+      "actions": "Actions",
+      "remove": "Remove"
+    },
+    "actions": {
+      "startBatch": "Start Batch Processing",
+      "clearList": "Clear List",
+      "downloadResults": "Download Results",
+      "downloadFiles": "Download Files"
+    },
+    "error": {
+      "title": "Processing Error",
+      "processingFailed": "Processing Failed",
+      "batchFailed": "Batch processing failed. Please check your network and try again."
+    }
+  },
+  "monitor": {
+    "title": "Task Monitor",
+    "description": "Real-time monitoring of async task status",
+    "taskCount": "{count} tasks",
+    "refresh": "Refresh",
+    "empty": {
+      "title": "No tasks yet",
+      "description": "Async tasks will appear here once created"
+    },
+    "table": {
+      "taskId": "Task ID",
+      "status": "Status",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "actions": "Actions",
+      "view": "View"
+    },
+    "detail": {
+      "title": "Task Details",
+      "taskId": "Task ID",
+      "status": "Status",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "errorInfo": "Error Message",
+      "aiScores": "AI Detection Scores",
+      "processingInfo": "Processing Info",
+      "processingTime": "Processing Time",
+      "roundsUsed": "Rounds Used",
+      "processedText": "Processed Text"
+    },
+    "error": {
+      "fetchFailed": "Failed to fetch task information. Please try again later."
+    }
+  },
+  "language": {
+    "switch": "Language",
+    "zh": "中文",
+    "en": "English"
+  }
+}

@@ -2,39 +2,41 @@
 
 import { useEffect, useState } from 'react';
 import { FileText, BarChart3, Upload, Zap, Clock, TrendingUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { TextProcessor } from './TextProcessor';
 import { TaskMonitor } from './TaskMonitor';
 import { BatchProcessor } from './BatchProcessor';
 import { useApi } from '@/lib/api-client';
 import type { TaskListResponse } from '@/types/api';
 
-const tabs = [
-  {
-    id: 'process',
-    name: '文本处理',
-    icon: FileText,
-    component: TextProcessor,
-  },
-  {
-    id: 'batch',
-    name: '批量处理',
-    icon: Upload,
-    component: BatchProcessor,
-  },
-  {
-    id: 'monitor',
-    name: '任务监控',
-    icon: BarChart3,
-    component: TaskMonitor,
-  },
-];
-
 export function Dashboard() {
+  const t = useTranslations('dashboard');
   const [activeTab, setActiveTab] = useState('process');
   const { getTasks } = useApi();
   const [todayCount, setTodayCount] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
   const [avgTime, setAvgTime] = useState(0);
+
+  const tabs = [
+    {
+      id: 'process',
+      name: t('tabs.process'),
+      icon: FileText,
+      component: TextProcessor,
+    },
+    {
+      id: 'batch',
+      name: t('tabs.batch'),
+      icon: Upload,
+      component: BatchProcessor,
+    },
+    {
+      id: 'monitor',
+      name: t('tabs.monitor'),
+      icon: BarChart3,
+      component: TaskMonitor,
+    },
+  ];
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -87,14 +89,14 @@ export function Dashboard() {
         <div className="mb-12 animate-fade-in-up">
           <div className="flex items-center gap-3 mb-4">
             <div className="decorative-dot" />
-            <span className="badge badge-coral">AI 内容优化</span>
+            <span className="badge badge-coral">{t('hero.badge')}</span>
           </div>
           <h1 className="font-display text-4xl md:text-5xl font-bold text-[var(--stone-900)] leading-tight mb-4 text-balance">
-            让 AI 文本更具
-            <span className="text-gradient">人情味</span>
+            {t('hero.title')}
+            <span className="text-gradient">{t('hero.highlight')}</span>
           </h1>
           <p className="text-lg text-[var(--stone-500)] max-w-2xl leading-relaxed text-pretty">
-            通过智能多轮处理，将 AI 生成的文本转换为更自然的人类写作风格，有效降低 AI 检测概率
+            {t('hero.description')}
           </p>
         </div>
 
@@ -105,13 +107,13 @@ export function Dashboard() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] flex items-center justify-center">
                 <Zap className="w-6 h-6 text-[var(--coral-500)]" />
               </div>
-              <span className="badge badge-coral">今日</span>
+              <span className="badge badge-coral">{t('stats.today')}</span>
             </div>
             <div className="stat-value tabular-nums !text-3xl">
               {todayCount}
-              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">次</span>
+              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">{t('stats.times')}</span>
             </div>
-            <p className="stat-label !text-sm !mt-1">文本处理次数</p>
+            <p className="stat-label !text-sm !mt-1">{t('stats.processCount')}</p>
           </div>
 
           <div className="card card-hover stat-card animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
@@ -119,13 +121,13 @@ export function Dashboard() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--teal-50)] to-[var(--teal-100)] flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-[var(--teal-500)]" />
               </div>
-              <span className="badge badge-teal">平均</span>
+              <span className="badge badge-teal">{t('stats.average')}</span>
             </div>
             <div className="stat-value tabular-nums !text-3xl">
               {(avgScore * 100).toFixed(1)}
               <span className="text-lg font-normal text-[var(--stone-400)] ml-1">%</span>
             </div>
-            <p className="stat-label !text-sm !mt-1">AI 检测分数</p>
+            <p className="stat-label !text-sm !mt-1">{t('stats.aiScore')}</p>
           </div>
 
           <div className="card card-hover stat-card animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>
@@ -133,13 +135,13 @@ export function Dashboard() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
                 <Clock className="w-6 h-6 text-purple-500" />
               </div>
-              <span className="badge badge-gray">效率</span>
+              <span className="badge badge-gray">{t('stats.efficiency')}</span>
             </div>
             <div className="stat-value tabular-nums !text-3xl">
               {avgTime.toFixed(1)}
-              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">秒</span>
+              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">{t('stats.seconds')}</span>
             </div>
-            <p className="stat-label !text-sm !mt-1">平均处理时间</p>
+            <p className="stat-label !text-sm !mt-1">{t('stats.avgTime')}</p>
           </div>
         </div>
 
@@ -184,10 +186,10 @@ export function Dashboard() {
             <div className="flex items-center gap-2 text-sm text-[var(--stone-500)]">
               <span className="font-display font-semibold text-[var(--stone-700)]">HumanTouch</span>
               <span className="text-[var(--stone-300)]">|</span>
-              <span>AI 内容人性化处理</span>
+              <span>{t('footer.tagline')}</span>
             </div>
             <p className="text-sm text-[var(--stone-400)]">
-              让每一段文字都充满温度
+              {t('footer.slogan')}
             </p>
           </div>
         </div>

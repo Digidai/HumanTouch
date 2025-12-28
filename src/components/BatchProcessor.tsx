@@ -1,19 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Upload, Download, FileText, AlertCircle, RotateCcw, Target } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useApi } from '@/lib/api-client';
-
-const styleOptions = [
-  { value: 'casual', label: '轻松随意' },
-  { value: 'academic', label: '学术正式' },
-  { value: 'professional', label: '专业商务' },
-  { value: 'creative', label: '创意写作' },
-];
 
 interface BatchTask {
   id: string;
@@ -32,8 +26,17 @@ interface BatchTask {
 }
 
 export function BatchProcessor() {
+  const t = useTranslations('batch');
+  const tProcessor = useTranslations('processor');
   const { batchProcess, loading, error } = useApi();
-  
+
+  const styleOptions = [
+    { value: 'casual', label: tProcessor('options.styles.casual') },
+    { value: 'academic', label: tProcessor('options.styles.academic') },
+    { value: 'professional', label: tProcessor('options.styles.professional') },
+    { value: 'creative', label: tProcessor('options.styles.creative') },
+  ];
+
   const [files, setFiles] = useState<File[]>([]);
   const [tasks, setTasks] = useState<BatchTask[]>([]);
   const [options, setOptions] = useState({
@@ -118,13 +121,13 @@ export function BatchProcessor() {
       })));
       
     } catch (err) {
-      console.error('批处理失败:', err);
+      console.error('Batch processing failed:', err);
       setTasks(prev => prev.map(task => ({
         ...task,
         status: 'failed' as const,
-        error: '处理失败',
+        error: t('error.processingFailed'),
       })));
-      setNotice('批量处理失败，请检查网络或稍后重试。');
+      setNotice(t('error.batchFailed'));
     }
   };
 
@@ -194,12 +197,12 @@ export function BatchProcessor() {
 
   return (
     <Card
-      title="批量处理"
-      description="批量上传和处理多个文本文件"
+      title={t('title')}
+      description={t('description')}
       icon={<Upload className="w-5 h-5" />}
     >
       <div className="space-y-8">
-        {/* 文件上传区域 */}
+        {/* File Upload Area */}
         <div className="space-y-4">
           <div
             className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 ${
@@ -217,8 +220,8 @@ export function BatchProcessor() {
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] flex items-center justify-center mx-auto mb-4">
               <Upload className="h-7 w-7 text-[var(--coral-500)]" />
             </div>
-            <p className="text-[var(--stone-700)] font-medium mb-2">拖拽文件到此处或点击上传</p>
-            <p className="text-sm text-[var(--stone-500)] mb-4">支持 .txt 和 .md 格式文件</p>
+            <p className="text-[var(--stone-700)] font-medium mb-2">{t('upload.dragDrop')}</p>
+            <p className="text-sm text-[var(--stone-500)] mb-4">{t('upload.formats')}</p>
             <input
               type="file"
               multiple
@@ -231,20 +234,20 @@ export function BatchProcessor() {
               onClick={() => document.getElementById('file-upload')?.click()}
               variant="outline"
             >
-              选择文件
+              {t('upload.selectFiles')}
             </Button>
           </div>
 
-          {/* 文件列表 */}
+          {/* File List */}
           {files.length > 0 && (
             <div className="card overflow-hidden">
               <table className="min-w-full divide-y divide-[var(--stone-200)]">
                 <thead className="bg-[var(--stone-50)]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">文件名</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">状态</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">大小</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">操作</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.filename')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.status')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.size')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-[var(--stone-100)]">
@@ -270,7 +273,7 @@ export function BatchProcessor() {
                           onClick={() => removeFile(index)}
                           className="text-red-500 hover:text-red-700 font-medium transition-colors"
                         >
-                          移除
+                          {t('table.remove')}
                         </button>
                       </td>
                     </tr>
@@ -281,10 +284,10 @@ export function BatchProcessor() {
           )}
         </div>
 
-        {/* 处理选项 */}
+        {/* Processing Options */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Select
-            label="写作风格"
+            label={tProcessor('options.style')}
             value={options.style}
             onChange={(e) => setOptions({ ...options, style: e.target.value as 'casual' | 'academic' | 'professional' | 'creative' })}
             options={styleOptions}
@@ -292,7 +295,7 @@ export function BatchProcessor() {
           />
 
           <Input
-            label="处理轮数"
+            label={tProcessor('options.rounds')}
             type="number"
             min={1}
             max={5}
@@ -303,20 +306,20 @@ export function BatchProcessor() {
           />
 
           <Input
-            label="目标分数"
+            label={tProcessor('options.targetScore')}
             type="number"
             min={0}
             max={1}
             step={0.01}
             value={options.target_score}
             onChange={(e) => setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })}
-            helperText="0.0-1.0，越低越难检测"
+            helperText={tProcessor('options.targetScoreHint')}
             disabled={loading}
             leftIcon={<Target className="w-4 h-4" />}
           />
         </div>
 
-        {/* 操作按钮 */}
+        {/* Action Buttons */}
         <div className="flex justify-between items-center">
           <div className="space-x-2">
             <Button
@@ -324,9 +327,9 @@ export function BatchProcessor() {
               disabled={files.length === 0 || loading}
               loading={loading}
             >
-              开始批量处理
+              {t('actions.startBatch')}
             </Button>
-            
+
             <Button
               onClick={() => {
                 setFiles([]);
@@ -335,28 +338,28 @@ export function BatchProcessor() {
               variant="ghost"
               disabled={files.length === 0}
             >
-              清空列表
+              {t('actions.clearList')}
             </Button>
           </div>
 
           <div className="space-x-2">
             <Button
               onClick={downloadResults}
-              disabled={!tasks.some(t => t.status === 'completed')}
+              disabled={!tasks.some(task => task.status === 'completed')}
               className="flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
-              <span>下载结果</span>
+              <span>{t('actions.downloadResults')}</span>
             </Button>
-            
+
             <Button
               onClick={downloadProcessedFiles}
-              disabled={!tasks.some(t => t.status === 'completed')}
+              disabled={!tasks.some(task => task.status === 'completed')}
               variant="ghost"
               className="flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
-              <span>下载文件</span>
+              <span>{t('actions.downloadFiles')}</span>
             </Button>
           </div>
         </div>
@@ -370,13 +373,13 @@ export function BatchProcessor() {
           </div>
         )}
 
-        {/* 错误提示 */}
+        {/* Error Alert */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-fade-in">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-red-800">处理出错</p>
+                <p className="font-medium text-red-800">{t('error.title')}</p>
                 <p className="text-sm text-red-600 mt-1">{error.message}</p>
               </div>
             </div>

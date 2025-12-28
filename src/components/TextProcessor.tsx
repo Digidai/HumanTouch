@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import type { ProcessResponse } from '@/types/api';
 import {
   Play,
@@ -22,16 +23,17 @@ import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
 import { useApi, useLlmSettings } from '@/lib/api-client';
 
-const styleOptions = [
-  { value: 'casual', label: '轻松随意' },
-  { value: 'academic', label: '学术正式' },
-  { value: 'professional', label: '专业商务' },
-  { value: 'creative', label: '创意写作' },
-];
-
 export function TextProcessor() {
+  const t = useTranslations('processor');
   const { processText, createAsyncTask, loading, error } = useApi();
   const { apiKey: llmApiKey, model: llmModel, isConfigured } = useLlmSettings();
+
+  const styleOptions = [
+    { value: 'casual', label: t('options.styles.casual') },
+    { value: 'academic', label: t('options.styles.academic') },
+    { value: 'professional', label: t('options.styles.professional') },
+    { value: 'creative', label: t('options.styles.creative') },
+  ];
 
   const [text, setText] = useState('');
   const [options, setOptions] = useState({
@@ -52,12 +54,12 @@ export function TextProcessor() {
 
   // 处理进度模拟
   const stages = [
-    { progress: 10, text: '正在分析文本结构...' },
-    { progress: 25, text: '第 1 轮人性化处理...' },
-    { progress: 45, text: '第 2 轮语义重组...' },
-    { progress: 65, text: '第 3 轮风格优化...' },
-    { progress: 80, text: '正在进行 AI 检测评估...' },
-    { progress: 95, text: '生成最终结果...' },
+    { progress: 10, text: t('progress.analyzing') },
+    { progress: 25, text: t('progress.round1') },
+    { progress: 45, text: t('progress.round2') },
+    { progress: 65, text: t('progress.round3') },
+    { progress: 80, text: t('progress.detecting') },
+    { progress: 95, text: t('progress.generating') },
   ];
 
   const startProgress = () => {
@@ -81,7 +83,7 @@ export function TextProcessor() {
     }
     if (success) {
       setProgress(100);
-      setProgressStage('处理完成！');
+      setProgressStage(t('progress.completed'));
     }
   };
 
@@ -95,7 +97,7 @@ export function TextProcessor() {
 
   const handleProcess = async () => {
     if (!text.trim()) {
-      setFieldError('请输入需要处理的文本');
+      setFieldError(t('input.required'));
       return;
     }
 
@@ -151,16 +153,16 @@ export function TextProcessor() {
 
   return (
     <Card
-      title="文本处理"
-      description="将 AI 生成的文本转换为更自然的人类写作风格"
+      title={t('title')}
+      description={t('description')}
       icon={<Sparkles className="w-5 h-5" />}
     >
       <div className="space-y-8">
         {/* Text Input Area */}
         <div className="space-y-3">
           <Textarea
-            label="输入文本"
-            placeholder="粘贴需要处理的 AI 生成文本..."
+            label={t('input.label')}
+            placeholder={t('input.placeholder')}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={8}
@@ -169,7 +171,7 @@ export function TextProcessor() {
           />
           <div className="flex justify-between items-center text-sm">
             <span className={fieldError ? 'text-red-500' : 'text-[var(--stone-500)]'}>
-              {fieldError ?? (text.length > 6000 ? '长文将自动分段处理' : '支持长文本，自动分段处理')}
+              {fieldError ?? (text.length > 6000 ? t('input.longTextHint') : t('input.hint'))}
             </span>
             <span className="text-[var(--stone-400)] tabular-nums">
               {text.length.toLocaleString()}/30,000
@@ -180,7 +182,7 @@ export function TextProcessor() {
         {/* Options Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Select
-            label="写作风格"
+            label={t('options.style')}
             value={options.style}
             onChange={(e) =>
               setOptions({
@@ -193,7 +195,7 @@ export function TextProcessor() {
           />
 
           <Input
-            label="处理轮数"
+            label={t('options.rounds')}
             type="number"
             min={1}
             max={5}
@@ -204,7 +206,7 @@ export function TextProcessor() {
           />
 
           <Input
-            label="目标分数"
+            label={t('options.targetScore')}
             type="number"
             min={0}
             max={1}
@@ -213,7 +215,7 @@ export function TextProcessor() {
             onChange={(e) =>
               setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })
             }
-            helperText="0.0-1.0，越低越难检测"
+            helperText={t('options.targetScoreHint')}
             disabled={loading}
             leftIcon={<Target className="w-4 h-4" />}
           />
@@ -221,7 +223,7 @@ export function TextProcessor() {
 
         {/* Processing Mode */}
         <div className="space-y-4">
-          <label className="label">处理模式</label>
+          <label className="label">{t('options.mode')}</label>
           <div className="flex gap-3">
             <button
               type="button"
@@ -237,8 +239,8 @@ export function TextProcessor() {
               `}
             >
               <Zap className="w-4 h-4" />
-              <span>同步处理</span>
-              <span className="text-xs opacity-70">实时返回</span>
+              <span>{t('options.syncMode')}</span>
+              <span className="text-xs opacity-70">{t('options.syncModeHint')}</span>
             </button>
 
             <button
@@ -255,8 +257,8 @@ export function TextProcessor() {
               `}
             >
               <Clock className="w-4 h-4" />
-              <span>异步任务</span>
-              <span className="text-xs opacity-70">适合长文本</span>
+              <span>{t('options.asyncMode')}</span>
+              <span className="text-xs opacity-70">{t('options.asyncModeHint')}</span>
             </button>
           </div>
         </div>
@@ -265,12 +267,12 @@ export function TextProcessor() {
         {mode === 'async' && (
           <div className="animate-fade-in">
             <Input
-              label="Webhook 通知 URL（可选）"
+              label={t('options.webhookUrl')}
               type="url"
               placeholder="https://your-webhook.com/callback"
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              helperText="任务完成后会发送通知到此 URL"
+              helperText={t('options.webhookUrlHint')}
               disabled={loading}
               leftIcon={<Link2 className="w-4 h-4" />}
             />
@@ -281,7 +283,7 @@ export function TextProcessor() {
         <div className="flex justify-end gap-3">
           {text && (
             <Button variant="ghost" onClick={handleReset} disabled={loading}>
-              清空
+              {t('actions.clear')}
             </Button>
           )}
           <Button
@@ -290,7 +292,7 @@ export function TextProcessor() {
             loading={loading}
             icon={<Play className="w-4 h-4" />}
           >
-            {mode === 'sync' ? '开始处理' : '创建任务'}
+            {mode === 'sync' ? t('actions.process') : t('actions.createTask')}
           </Button>
         </div>
 
@@ -304,7 +306,7 @@ export function TextProcessor() {
                     <Loader2 className="w-5 h-5 text-[var(--coral-600)] animate-spin" />
                   </div>
                   <div>
-                    <p className="font-medium text-[var(--stone-800)]">正在处理</p>
+                    <p className="font-medium text-[var(--stone-800)]">{t('progress.processing')}</p>
                     <p className="text-sm text-[var(--stone-500)]">{progressStage}</p>
                   </div>
                 </div>
@@ -328,19 +330,19 @@ export function TextProcessor() {
 
               {/* Stage Indicators */}
               <div className="flex justify-between mt-4 text-xs text-[var(--stone-400)]">
-                <span className={progress >= 10 ? 'text-[var(--coral-500)]' : ''}>分析</span>
-                <span className={progress >= 25 ? 'text-[var(--coral-500)]' : ''}>第1轮</span>
-                <span className={progress >= 45 ? 'text-[var(--coral-500)]' : ''}>第2轮</span>
-                <span className={progress >= 65 ? 'text-[var(--coral-500)]' : ''}>第3轮</span>
-                <span className={progress >= 80 ? 'text-[var(--coral-500)]' : ''}>检测</span>
-                <span className={progress >= 95 ? 'text-[var(--coral-500)]' : ''}>完成</span>
+                <span className={progress >= 10 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.analyze')}</span>
+                <span className={progress >= 25 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.r1')}</span>
+                <span className={progress >= 45 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.r2')}</span>
+                <span className={progress >= 65 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.r3')}</span>
+                <span className={progress >= 80 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.detect')}</span>
+                <span className={progress >= 95 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.done')}</span>
               </div>
             </div>
 
             {/* Processing Tips */}
             <div className="flex items-center gap-2 text-sm text-[var(--stone-500)] justify-center">
               <Sparkles className="w-4 h-4 text-[var(--coral-400)]" />
-              <span>多轮处理可有效降低 AI 检测分数，请耐心等待...</span>
+              <span>{t('progress.tip')}</span>
             </div>
           </div>
         )}
@@ -352,18 +354,18 @@ export function TextProcessor() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-xl font-semibold text-[var(--stone-900)]">
-                    处理结果
+                    {t('results.title')}
                   </h3>
                   <Button variant="outline" size="sm" onClick={handleCopy}>
                     {copied ? (
                       <>
                         <Check className="w-4 h-4 text-[var(--teal-500)]" />
-                        <span>已复制</span>
+                        <span>{t('results.copied')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        <span>复制结果</span>
+                        <span>{t('results.copy')}</span>
                       </>
                     )}
                   </Button>
@@ -390,7 +392,7 @@ export function TextProcessor() {
                     </p>
                   </div>
                   <div className="card stat-card !bg-gradient-to-br !from-[var(--coral-50)] !to-[var(--coral-100)]">
-                    <p className="stat-label !text-[var(--coral-600)]">处理时间</p>
+                    <p className="stat-label !text-[var(--coral-600)]">{t('results.processingTime')}</p>
                     <p className="stat-value tabular-nums !text-[var(--coral-700)]">
                       {(result as ProcessResponse).processing_time?.toFixed(2)}s
                     </p>
@@ -401,9 +403,9 @@ export function TextProcessor() {
                 <div className="card p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Sparkles className="w-4 h-4 text-[var(--coral-500)]" />
-                    <span className="label !mb-0">处理后的文本</span>
+                    <span className="label !mb-0">{t('results.processedText')}</span>
                     <span className="badge badge-gray">
-                      {(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length} 字符
+                      {(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length} {t('results.chars')}
                     </span>
                   </div>
                   <p className="text-[var(--stone-700)] leading-relaxed whitespace-pre-wrap text-pretty">
@@ -418,9 +420,9 @@ export function TextProcessor() {
                     <Clock className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-[var(--teal-800)]">异步任务已创建</p>
+                    <p className="font-medium text-[var(--teal-800)]">{t('results.asyncCreated')}</p>
                     <p className="text-sm text-[var(--teal-600)]">
-                      任务 ID: <code className="bg-white/50 px-2 py-0.5 rounded">{(result as { task_id: string }).task_id}</code>
+                      {t('results.taskId')}: <code className="bg-white/50 px-2 py-0.5 rounded">{(result as { task_id: string }).task_id}</code>
                     </p>
                   </div>
                 </div>
@@ -435,14 +437,14 @@ export function TextProcessor() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-red-800">处理出错</p>
+                <p className="font-medium text-red-800">{t('error.title')}</p>
                 <p className="text-sm text-red-600 mt-1">
-                  {error.message || '处理过程中出现错误，请稍后重试。'}
+                  {error.message || t('error.message')}
                 </p>
                 {error.details && (
                   <details className="mt-2">
                     <summary className="text-xs text-red-500 cursor-pointer hover:text-red-700">
-                      查看详细信息
+                      {t('error.details')}
                     </summary>
                     <pre className="mt-2 text-xs text-red-500 bg-red-100/50 p-2 rounded overflow-x-auto">
                       {error.details}

@@ -168,7 +168,7 @@ export class LLMClient {
     let nextRound = 1;
 
     for (let i = 0; i < rounds; i++) {
-      const instruction = this.getHumanizationInstruction(nextRound, style, targetScore);
+      const instruction = this.getHumanizationInstruction(nextRound, style, targetScore, false, currentText);
       usedRounds.push(nextRound);
 
       console.log(`[LLMClient] 执行第 ${i + 1}/${rounds} 轮处理（策略 #${nextRound}）`);
@@ -261,7 +261,7 @@ export class LLMClient {
       let currentChunk = chunk;
 
       for (let round = 1; round <= rounds; round++) {
-        const instruction = this.getHumanizationInstruction(round, style, targetScore, true);
+        const instruction = this.getHumanizationInstruction(round, style, targetScore, true, currentChunk);
         // 长文本分段使用带重试机制的 API 调用
         currentChunk = await this.chatWithRetry(currentChunk, instruction, model, true);
       }
@@ -468,38 +468,74 @@ export class LLMClient {
     }
   };
 
-  // 风格配置 - 针对不同写作风格的策略
-  private static readonly STYLE_CONFIG: Record<string, {
+  // 风格配置 - 针对不同写作风格的策略 (中英双语)
+  private static readonly STYLE_CONFIG: Record<string, Record<string, {
     tone: string;
     vocabulary: string;
     structure: string;
     personality: string;
-  }> = {
-    casual: {
-      tone: '轻松、随意、亲切',
-      vocabulary: '口语化词汇、俚语、缩写',
-      structure: '短句为主、可用不完整句、允许口语化省略',
-      personality: '像朋友聊天、可以用"我觉得"、"说实话"等个人化表达',
+  }>> = {
+    zh: {
+      casual: {
+        tone: '轻松、随意、亲切',
+        vocabulary: '口语化词汇、俚语、缩写',
+        structure: '短句为主、可用不完整句、允许口语化省略',
+        personality: '像朋友聊天、可以用"我觉得"、"说实话"等个人化表达',
+      },
+      academic: {
+        tone: '严谨、客观、专业',
+        vocabulary: '学术术语、精确用词、避免口语',
+        structure: '复杂句式、从句嵌套、逻辑严密',
+        personality: '引用式表达、谨慎的断言、承认局限性',
+      },
+      professional: {
+        tone: '专业、简洁、有说服力',
+        vocabulary: '行业术语、精炼用词、数据支撑',
+        structure: '清晰的论点、有力的论证、结论明确',
+        personality: '自信但不傲慢、解决问题导向、注重实效',
+      },
+      creative: {
+        tone: '生动、形象、富有感染力',
+        vocabulary: '比喻、隐喻、感官词汇、创意表达',
+        structure: '节奏变化、意外转折、留白和暗示',
+        personality: '独特视角、情感表达、想象力丰富',
+      },
     },
-    academic: {
-      tone: '严谨、客观、专业',
-      vocabulary: '学术术语、精确用词、避免口语',
-      structure: '复杂句式、从句嵌套、逻辑严密',
-      personality: '引用式表达、谨慎的断言、承认局限性',
-    },
-    professional: {
-      tone: '专业、简洁、有说服力',
-      vocabulary: '行业术语、精炼用词、数据支撑',
-      structure: '清晰的论点、有力的论证、结论明确',
-      personality: '自信但不傲慢、解决问题导向、注重实效',
-    },
-    creative: {
-      tone: '生动、形象、富有感染力',
-      vocabulary: '比喻、隐喻、感官词汇、创意表达',
-      structure: '节奏变化、意外转折、留白和暗示',
-      personality: '独特视角、情感表达、想象力丰富',
+    en: {
+      casual: {
+        tone: 'relaxed, informal, friendly',
+        vocabulary: 'colloquial words, slang, contractions',
+        structure: 'short sentences, fragments allowed, conversational omissions',
+        personality: 'like chatting with a friend, use "I think", "honestly" etc.',
+      },
+      academic: {
+        tone: 'rigorous, objective, professional',
+        vocabulary: 'academic terminology, precise wording, avoid colloquialisms',
+        structure: 'complex sentences, nested clauses, logical rigor',
+        personality: 'citation-style, cautious assertions, acknowledge limitations',
+      },
+      professional: {
+        tone: 'professional, concise, persuasive',
+        vocabulary: 'industry terms, refined wording, data-backed',
+        structure: 'clear arguments, strong evidence, definite conclusions',
+        personality: 'confident but not arrogant, solution-oriented, pragmatic',
+      },
+      creative: {
+        tone: 'vivid, imaginative, engaging',
+        vocabulary: 'metaphors, sensory words, creative expressions',
+        structure: 'rhythm variations, unexpected turns, strategic pauses',
+        personality: 'unique perspective, emotional expression, rich imagination',
+      },
     },
   };
+
+  // 检测文本主要语言
+  private detectLanguage(text: string): 'zh' | 'en' {
+    // 简单的中文检测：统计中文字符比例
+    const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
+    const ratio = chineseChars.length / text.length;
+    return ratio > 0.1 ? 'zh' : 'en';
+  }
 
   /**
    * 获取人性化指令 - 基于 AI 检测器原理的科学策略
@@ -510,11 +546,16 @@ export class LLMClient {
    * 3. 词汇多样性: AI重复模式多，需增加词汇变异
    * 4. 句法变异: AI结构统一，需改变句法模式
    */
-  private getHumanizationInstruction(round: number, style: string, targetScore: number, isChunk: boolean = false): string {
-    const chunkNote = isChunk ? '\n\n【片段处理注意】这是长文的一个片段，保持内容连贯，不要添加开头语或结尾总结。' : '';
-    const styleConfig = LLMClient.STYLE_CONFIG[style] || LLMClient.STYLE_CONFIG.casual;
+  private getHumanizationInstruction(round: number, style: string, targetScore: number, isChunk: boolean = false, inputText?: string): string {
+    // 检测语言，默认使用中文
+    const lang = inputText ? this.detectLanguage(inputText) : 'zh';
+    const chunkNote = lang === 'zh'
+      ? (isChunk ? '\n\n【片段处理注意】这是长文的一个片段，保持内容连贯，不要添加开头语或结尾总结。' : '')
+      : (isChunk ? '\n\n[CHUNK NOTE] This is a segment of a longer text. Maintain continuity, do not add introductions or conclusions.' : '');
+    const styleConfig = LLMClient.STYLE_CONFIG[lang]?.[style] || LLMClient.STYLE_CONFIG[lang]?.casual || LLMClient.STYLE_CONFIG.zh.casual;
 
-    const instructions: Record<number, string> = {
+    // 中文指令
+    const instructionsZh: Record<number, string> = {
       // 第1轮：AI 模式消除 - 移除 AI 典型特征
       1: `【角色】你是一位资深编辑，专门将机械化文本改写为自然人类表达。
 
@@ -696,6 +737,192 @@ AI 检测器通过预测下一个词来判断文本。如果下一个词很容�
 
 直接输出改写后的文本，禁止任何解释。`,
     };
+
+    // English instructions
+    const instructionsEn: Record<number, string> = {
+      // Round 1: AI Pattern Elimination - Remove typical AI characteristics
+      1: `[ROLE] You are a senior editor specializing in transforming mechanical text into natural human expression.
+
+[CORE TASK] Eliminate typical AI writing patterns to make the text read like it was written by a real person.
+
+[AI FEATURES TO ELIMINATE]
+1. Sequential connectors: Remove or replace "firstly/secondly/finally", "first/second/third", etc.
+2. AI clichés: Remove "it is important to note", "it is worth mentioning", "in conclusion", etc.
+3. Overly formal vocabulary: Replace "utilize" with "use", "implement" with "do/get done"
+4. Template phrases: Rewrite "in terms of", "from the perspective of", "with regard to"
+
+[REWRITING STRATEGIES]
+- Replace abstract verbs with concrete ones ("conduct a discussion" → "talked about"/"discussed")
+- Break parallel structures, use natural transitions instead
+- Merge overly short paragraphs or split long ones
+
+[STYLE] ${styleConfig.tone}
+[VOCABULARY] ${styleConfig.vocabulary}
+
+Output the rewritten text directly. No explanations or meta-commentary.`,
+
+      // Round 2: Syntactic Restructuring - Increase syntactic diversity and burstiness
+      2: `[ROLE] You are a linguist specializing in natural syntactic variation.
+
+[CORE TASK] Restructure sentences to create the "burstiness" characteristic of human writing.
+
+[WHAT IS BURSTINESS]
+Human writing has dramatic sentence length variation: sometimes very short, sometimes very long. AI writing tends to have uniform sentence lengths.
+
+[SYNTACTIC RESTRUCTURING STRATEGIES]
+1. Sentence length variation:
+   - Insert short sentences after long ones ("Just like that." / "Right." / "Really.")
+   - Split some long sentences into 2-3 short ones
+   - Occasionally use extra-long compound sentences
+
+2. Sentence structure changes:
+   - Change subject-verb-object order ("Researchers found..." → "This discovery led researchers...")
+   - Convert statements to rhetorical questions or exclamations
+   - Use inversions, ellipses, and other variant structures
+
+3. Paragraph rhythm:
+   - Some paragraphs have only one or two sentences
+   - Some paragraphs are information-dense
+   - Avoid the standard 3-4 sentence structure for every paragraph
+
+[STYLE] ${styleConfig.tone}
+[STRUCTURE] ${styleConfig.structure}
+
+Output the rewritten text directly. No explanations.`,
+
+      // Round 3: Vocabulary Diversification - Increase perplexity
+      3: `[ROLE] You are a vocabulary expert skilled at enriching text with varied word choices.
+
+[CORE TASK] Increase vocabulary diversity to raise the text's "perplexity."
+
+[WHAT IS PERPLEXITY]
+AI detectors judge text by predicting the next word. If the next word is easily predictable, perplexity is low (AI-like). Humans use more unexpected, uncommon word combinations.
+
+[VOCABULARY DIVERSIFICATION STRATEGIES]
+1. Synonym substitution without awkwardness:
+   - Don't simply replace with obscure words
+   - Choose equally natural but less common expressions
+   - Example: "very important" → "pretty crucial" / "can't overlook this" / "matters a lot"
+
+2. Break fixed collocations:
+   - "achieve success" → "pulled it off" / "got it done"
+   - "of great significance" → "means something" / "carries weight"
+
+3. Introduce concrete expressions:
+   - Use specific metaphors instead of abstract descriptions
+   - Add sensory words for vividness
+   - Example: "growing rapidly" → "shooting up like a rocket"
+
+4. Colloquial vocabulary (if style permits):
+   - Interjections: "well", "so", "you know", "I mean"
+   - Casual expressions: "basically", "honestly", "thing is"
+
+[STYLE] ${styleConfig.tone}
+[VOCABULARY] ${styleConfig.vocabulary}
+
+Output the rewritten text directly. No explanations.`,
+
+      // Round 4: Thought Trace Injection - Simulate human thought process
+      4: `[ROLE] You are a psycholinguist specializing in traces of human thought in writing.
+
+[CORE TASK] Inject traces of human thought processes to give the text a "thinking flavor."
+
+[HUMAN THOUGHT CHARACTERISTICS IN WRITING]
+1. Thought jumps: Humans don't write perfectly in logical order
+2. Self-correction: Phrases like "no wait, I mean..." appear
+3. Uncertainty expressions: Humans acknowledge uncertainty
+4. Emotional reactions: Real emotional responses to content
+
+[INJECTION STRATEGIES]
+1. Insert thought traces:
+   - "Speaking of which, I remember..."
+   - "Hold on, I should add..."
+   - "Honestly,..."
+   - "Looking back now..."
+
+2. Express uncertainty:
+   - "probably..." / "maybe..." / "I think I recall..."
+   - "I'm not entirely sure about this, but..."
+   - "Can't say for certain, but..."
+
+3. Personal stance expressions:
+   - "Personally, I think..." / "The way I see it..."
+   - "This reminds me of..."
+   - "I have to say,..."
+
+4. Emotional reactions:
+   - "Interestingly enough..." / "What's surprising is..."
+   - "To be honest, this is kind of..."
+   - Use appropriate exclamations
+
+[STYLE] ${styleConfig.tone}
+[PERSONALITY] ${styleConfig.personality}
+
+Output the rewritten text directly. No explanations.`,
+
+      // Round 5: Deep Polish - Final optimization and quality assurance
+      5: `[ROLE] You are a senior writer and text polishing expert.
+
+[CORE TASK] Final polish to ensure the text passes AI detection while maintaining high quality.
+
+[POLISHING POINTS]
+1. Naturalness check:
+   - Read-aloud test: Does it sound like something a person would say?
+   - Remove anything that sounds like "AI explaining"
+   - Ensure transitions are natural, not forced
+
+2. Uniqueness injection:
+   - Add 1-2 unique viewpoints or insights
+   - Use a distinctive metaphor or analogy
+   - Leave an "author's mark"
+
+3. Imperfection:
+   - Human writing isn't perfect
+   - Can have slight repetition
+   - Can have less-than-precise expressions
+   - But maintain readability
+
+4. Final rhythm adjustment:
+   - Check if the opening is engaging
+   - Check if the ending is natural (not an AI-style summary)
+   - Overall reading flow
+
+[STYLE] ${styleConfig.tone}
+[QUALITY] Maintain accuracy while ensuring no AI traces
+
+Output the rewritten text directly. No explanations.`,
+
+      // Round 6 (if needed): Extreme Processing - For stubborn AI traces
+      6: `[ROLE] You are an anti-AI detection expert specializing in stubborn AI traces.
+
+[CORE TASK] Apply extreme processing to text that still shows AI traces.
+
+[EXTREME PROCESSING STRATEGIES]
+1. Complete sentence rewrites:
+   - Not modification, but expressing the same meaning in a completely different way
+   - Change the order of information presentation
+
+2. Introduce unexpected elements:
+   - A surprising analogy
+   - A small story or example
+   - A rhetorical question
+
+3. Break AI patterns:
+   - Deliberately break "problem-analysis-solution" patterns
+   - State conclusion before reasoning
+   - Intersperse related but not perfectly aligned content
+
+4. Add human "imperfections":
+   - One slight information redundancy
+   - One less precise but more vivid expression
+   - Keep these "imperfections" natural and not affecting comprehension
+
+[STYLE] ${styleConfig.tone}
+
+Output the rewritten text directly. No explanations.`,
+    };
+
+    const instructions = lang === 'zh' ? instructionsZh : instructionsEn;
 
     const instruction = instructions[round] || instructions[1];
     return instruction + chunkNote;

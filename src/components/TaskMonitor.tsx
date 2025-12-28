@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -26,8 +27,10 @@ interface Task {
 }
 
 export function TaskMonitor() {
+  const t = useTranslations('monitor');
+  const locale = useLocale();
   const { getTasks, getTaskStatus, loading, error } = useApi();
-  
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [polling, setPolling] = useState(false);
@@ -125,16 +128,16 @@ export function TaskMonitor() {
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('zh-CN');
+    return new Date(timestamp).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US');
   };
 
   return (
-    <Card title="任务监控" description="实时监控异步任务的处理状态">
+    <Card title={t('title')} description={t('description')}>
       <div className="space-y-6">
-        {/* 控制栏 */}
+        {/* Control Bar */}
         <div className="flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            共 {tasks.length} 个任务
+            {t('taskCount', { count: tasks.length })}
           </div>
           <Button
             onClick={fetchTasks}
@@ -143,37 +146,37 @@ export function TaskMonitor() {
             className="flex items-center space-x-2"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>刷新</span>
+            <span>{t('refresh')}</span>
           </Button>
         </div>
 
         {tasks.length === 0 ? (
           <div className="text-center py-12">
             <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">暂无任务记录</p>
-            <p className="text-sm text-gray-500 mt-2">创建异步任务后，将在此显示处理进度</p>
+            <p className="text-gray-600">{t('empty.title')}</p>
+            <p className="text-sm text-gray-500 mt-2">{t('empty.description')}</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 任务列表 */}
+            {/* Task List */}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      任务ID
+                      {t('table.taskId')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      状态
+                      {t('table.status')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      创建时间
+                      {t('table.createdAt')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      更新时间
+                      {t('table.updatedAt')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      操作
+                      {t('table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -206,7 +209,7 @@ export function TaskMonitor() {
                           className="text-blue-600 hover:text-blue-900 flex items-center"
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          查看
+                          {t('table.view')}
                         </button>
                       </td>
                     </tr>
@@ -217,24 +220,24 @@ export function TaskMonitor() {
           </div>
         )}
 
-        {/* 错误提示 */}
+        {/* Error Alert */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
               <p className="text-sm text-red-800">
-                {error.message || '获取任务信息时出现错误，请稍后重试。'}
+                {error.message || t('error.fetchFailed')}
               </p>
             </div>
           </div>
         )}
 
-        {/* 任务详情模态框 */}
+        {/* Task Detail Modal */}
         {selectedTask && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">任务详情</h3>
+                <h3 className="text-lg font-semibold">{t('detail.title')}</h3>
                 <button
                   onClick={() => setSelectedTask(null)}
                   className="text-gray-400 hover:text-gray-600"
@@ -246,29 +249,29 @@ export function TaskMonitor() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h4 className="font-medium text-gray-700">任务ID</h4>
+                    <h4 className="font-medium text-gray-700">{t('detail.taskId')}</h4>
                     <p className="text-sm font-mono">{selectedTask.id}</p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-700">状态</h4>
+                    <h4 className="font-medium text-gray-700">{t('detail.status')}</h4>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTask.status)}`}>
                       {getStatusIcon(selectedTask.status)}
                       <span className="ml-1">{selectedTask.status}</span>
                     </span>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-700">创建时间</h4>
+                    <h4 className="font-medium text-gray-700">{t('detail.createdAt')}</h4>
                     <p className="text-sm">{formatTime(selectedTask.created_at)}</p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-700">更新时间</h4>
+                    <h4 className="font-medium text-gray-700">{t('detail.updatedAt')}</h4>
                     <p className="text-sm">{formatTime(selectedTask.updated_at)}</p>
                   </div>
                 </div>
 
                 {selectedTask.error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h4 className="font-medium text-red-800 mb-2">错误信息</h4>
+                    <h4 className="font-medium text-red-800 mb-2">{t('detail.errorInfo')}</h4>
                     <p className="text-sm text-red-700">{selectedTask.error}</p>
                   </div>
                 )}
@@ -277,7 +280,7 @@ export function TaskMonitor() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="font-medium mb-2">AI检测分数</h4>
+                        <h4 className="font-medium mb-2">{t('detail.aiScores')}</h4>
                         <div className="space-y-1 text-sm">
                           <div>ZeroGPT: {((selectedTask.result?.detection_scores?.zerogpt ?? 0) * 100).toFixed(1)}%</div>
                           <div>GPTZero: {((selectedTask.result?.detection_scores?.gptzero ?? 0) * 100).toFixed(1)}%</div>
@@ -285,17 +288,17 @@ export function TaskMonitor() {
                         </div>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="font-medium mb-2">处理信息</h4>
+                        <h4 className="font-medium mb-2">{t('detail.processingInfo')}</h4>
                         <div className="space-y-1 text-sm">
-                          <div>处理时间: {(selectedTask.result.processing_time || 0).toFixed(2)}s</div>
-                          <div>使用轮数: {selectedTask.result.rounds_used || 0}</div>
+                          <div>{t('detail.processingTime')}: {(selectedTask.result.processing_time || 0).toFixed(2)}s</div>
+                          <div>{t('detail.roundsUsed')}: {selectedTask.result.rounds_used || 0}</div>
                         </div>
                       </div>
                     </div>
 
                     {selectedTask.result.processed_text && (
                       <div>
-                        <h4 className="font-medium mb-2">处理后的文本</h4>
+                        <h4 className="font-medium mb-2">{t('detail.processedText')}</h4>
                         <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
                           <pre className="text-sm whitespace-pre-wrap font-sans">{selectedTask.result.processed_text}</pre>
                         </div>
