@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Crimson_Pro, Outfit } from "next/font/google";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const crimsonPro = Crimson_Pro({
@@ -36,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className={`${crimsonPro.variable} ${outfit.variable}`}>
       <body className="antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

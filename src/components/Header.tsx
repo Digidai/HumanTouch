@@ -1,17 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Sparkles, Key, X, Check } from 'lucide-react';
 import { useApiKey } from '@/lib/api-client';
 
 export function Header() {
-  const { apiKey, saveApiKey, loadApiKey, clearApiKey } = useApiKey();
+  const { apiKey, saveApiKey, clearApiKey } = useApiKey();
   const [inputKey, setInputKey] = useState('');
   const [isInputVisible, setIsInputVisible] = useState(false);
-
-  useEffect(() => {
-    loadApiKey();
-  }, [loadApiKey]);
 
   const handleSaveKey = () => {
     if (inputKey.trim()) {

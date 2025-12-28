@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, createContext, useContext, ReactNode, useEffect } from 'react';
 import { ProcessRequest, ProcessResponse, BatchRequest, BatchResponse, AsyncTaskResponse, TaskStatusResponse, ValidateRequest, ValidateResponse, TaskListResponse } from '@/types/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -123,8 +123,26 @@ export function useApi(options: UseApiOptions = {}) {
   };
 }
 
-export function useApiKey() {
+// API Key Context for sharing state across components
+interface ApiKeyContextType {
+  apiKey: string | null;
+  saveApiKey: (key: string) => void;
+  loadApiKey: () => string | null;
+  clearApiKey: () => void;
+}
+
+const ApiKeyContext = createContext<ApiKeyContextType | null>(null);
+
+export function ApiKeyProvider({ children }: { children: ReactNode }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
+
+  // Load API key from localStorage on mount
+  useEffect(() => {
+    const key = localStorage.getItem('humantouch_api_key');
+    if (key) {
+      setApiKey(key);
+    }
+  }, []);
 
   const saveApiKey = useCallback((key: string) => {
     localStorage.setItem('humantouch_api_key', key);
@@ -142,10 +160,45 @@ export function useApiKey() {
     setApiKey(null);
   }, []);
 
+  return (
+    <ApiKeyContext.Provider value={{ apiKey, saveApiKey, loadApiKey, clearApiKey }}>
+      {children}
+    </ApiKeyContext.Provider>
+  );
+}
+
+export function useApiKey() {
+  const context = useContext(ApiKeyContext);
+
+  // Fallback for when used outside provider (shouldn't happen, but for safety)
+  const [fallbackKey, setFallbackKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!context) {
+      const key = localStorage.getItem('humantouch_api_key');
+      if (key) setFallbackKey(key);
+    }
+  }, [context]);
+
+  if (context) {
+    return context;
+  }
+
+  // Fallback implementation
   return {
-    apiKey,
-    saveApiKey,
-    loadApiKey,
-    clearApiKey,
+    apiKey: fallbackKey,
+    saveApiKey: (key: string) => {
+      localStorage.setItem('humantouch_api_key', key);
+      setFallbackKey(key);
+    },
+    loadApiKey: () => {
+      const key = localStorage.getItem('humantouch_api_key');
+      setFallbackKey(key);
+      return key;
+    },
+    clearApiKey: () => {
+      localStorage.removeItem('humantouch_api_key');
+      setFallbackKey(null);
+    },
   };
 }
