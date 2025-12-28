@@ -1,10 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Download, FileText, AlertCircle } from 'lucide-react';
+import { Upload, Download, FileText, AlertCircle, RotateCcw, Target } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { useApi } from '@/lib/api-client';
+
+const styleOptions = [
+  { value: 'casual', label: '轻松随意' },
+  { value: 'academic', label: '学术正式' },
+  { value: 'professional', label: '专业商务' },
+  { value: 'creative', label: '创意写作' },
+];
 
 interface BatchTask {
   id: string;
@@ -175,22 +184,28 @@ export function BatchProcessor() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'text-yellow-600';
-      case 'processing': return 'text-blue-600';
-      case 'completed': return 'text-green-600';
+      case 'pending': return 'text-[var(--stone-500)]';
+      case 'processing': return 'text-[var(--coral-600)]';
+      case 'completed': return 'text-[var(--teal-600)]';
       case 'failed': return 'text-red-600';
-      default: return 'text-gray-600';
+      default: return 'text-[var(--stone-500)]';
     }
   };
 
   return (
-    <Card title="批量处理" description="批量上传和处理多个文本文件">
-      <div className="space-y-6">
+    <Card
+      title="批量处理"
+      description="批量上传和处理多个文本文件"
+      icon={<Upload className="w-5 h-5" />}
+    >
+      <div className="space-y-8">
         {/* 文件上传区域 */}
         <div className="space-y-4">
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 ${
+              dragOver
+                ? 'border-[var(--coral-400)] bg-[var(--coral-50)]'
+                : 'border-[var(--stone-300)] hover:border-[var(--coral-300)] hover:bg-[var(--stone-50)]'
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -199,9 +214,11 @@ export function BatchProcessor() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-2">拖拽文件到此处或点击上传</p>
-            <p className="text-sm text-gray-500 mb-4">支持 .txt 和 .md 格式文件</p>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] flex items-center justify-center mx-auto mb-4">
+              <Upload className="h-7 w-7 text-[var(--coral-500)]" />
+            </div>
+            <p className="text-[var(--stone-700)] font-medium mb-2">拖拽文件到此处或点击上传</p>
+            <p className="text-sm text-[var(--stone-500)] mb-4">支持 .txt 和 .md 格式文件</p>
             <input
               type="file"
               multiple
@@ -212,6 +229,7 @@ export function BatchProcessor() {
             />
             <Button
               onClick={() => document.getElementById('file-upload')?.click()}
+              variant="outline"
             >
               选择文件
             </Button>
@@ -219,22 +237,22 @@ export function BatchProcessor() {
 
           {/* 文件列表 */}
           {files.length > 0 && (
-            <div className="border rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="card overflow-hidden">
+              <table className="min-w-full divide-y divide-[var(--stone-200)]">
+                <thead className="bg-[var(--stone-50)]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">文件名</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">大小</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">文件名</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">状态</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">大小</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">操作</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white/50 divide-y divide-[var(--stone-100)]">
                   {files.map((file, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={index} className="hover:bg-[var(--stone-50)] transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--stone-900)]">
                         <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2 text-gray-400" />
+                          <FileText className="h-4 w-4 mr-2 text-[var(--coral-500)]" />
                           {file.name}
                         </div>
                       </td>
@@ -244,13 +262,13 @@ export function BatchProcessor() {
                           <span className="ml-1">{tasks[index]?.status || 'pending'}</span>
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--stone-500)] tabular-nums">
                         {(file.size / 1024).toFixed(1)} KB
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
                           onClick={() => removeFile(index)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-500 hover:text-red-700 font-medium transition-colors"
                         >
                           移除
                         </button>
@@ -264,37 +282,37 @@ export function BatchProcessor() {
         </div>
 
         {/* 处理选项 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Select
+            label="写作风格"
             value={options.style}
             onChange={(e) => setOptions({ ...options, style: e.target.value as 'casual' | 'academic' | 'professional' | 'creative' })}
-          >
-            <option value="casual">轻松随意</option>
-            <option value="academic">学术正式</option>
-            <option value="professional">专业商务</option>
-            <option value="creative">创意写作</option>
-          </select>
-          
-          <input
+            options={styleOptions}
+            disabled={loading}
+          />
+
+          <Input
+            label="处理轮数"
             type="number"
-            min="1"
-            max="5"
+            min={1}
+            max={5}
             value={options.rounds}
             onChange={(e) => setOptions({ ...options, rounds: parseInt(e.target.value) || 3 })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="处理轮数"
+            disabled={loading}
+            leftIcon={<RotateCcw className="w-4 h-4" />}
           />
-          
-          <input
+
+          <Input
+            label="目标分数"
             type="number"
-            min="0"
-            max="1"
-            step="0.01"
+            min={0}
+            max={1}
+            step={0.01}
             value={options.target_score}
             onChange={(e) => setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="目标分数"
+            helperText="0.0-1.0，越低越难检测"
+            disabled={loading}
+            leftIcon={<Target className="w-4 h-4" />}
           />
         </div>
 
@@ -344,20 +362,23 @@ export function BatchProcessor() {
         </div>
 
         {notice && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-[var(--teal-50)] border border-[var(--teal-200)] rounded-xl p-4 animate-fade-in">
             <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-blue-600 mr-2" />
-              <p className="text-sm text-blue-800">{notice}</p>
+              <AlertCircle className="h-5 w-5 text-[var(--teal-600)] mr-3 flex-shrink-0" />
+              <p className="text-sm text-[var(--teal-800)]">{notice}</p>
             </div>
           </div>
         )}
 
         {/* 错误提示 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-              <p className="text-sm text-red-800">{error.message}</p>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-red-800">处理出错</p>
+                <p className="text-sm text-red-600 mt-1">{error.message}</p>
+              </div>
             </div>
           </div>
         )}
