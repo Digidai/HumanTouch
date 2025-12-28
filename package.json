@@ -1,18 +1,49 @@
 {
   "name": "humantouch",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "Transform AI-generated text into natural human writing. Bypass AI detectors with multi-round processing.",
+  "author": "HumanTouch Team",
+  "license": "MIT",
+  "homepage": "https://github.com/Digidai/HumanTouch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Digidai/HumanTouch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Digidai/HumanTouch/issues"
+  },
+  "keywords": [
+    "ai",
+    "humanize",
+    "text-processing",
+    "ai-detection",
+    "content",
+    "writing",
+    "nextjs",
+    "typescript",
+    "openrouter",
+    "cloudflare-workers"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "deploy": "vercel --prod",
     "deploy:cf": "wrangler deploy",
     "dev:cf": "wrangler dev",
     "cf:secret": "wrangler secret put",
     "test": "node test-api.js",
-    "test-async": "node test-async.js"
+    "test:async": "node test-async.js",
+    "clean": "rm -rf .next node_modules",
+    "prepare": "echo 'Ready to develop!'"
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.2",
@@ -27,7 +58,6 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",
-    "wrangler": "^3.99.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",
@@ -37,8 +67,10 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.1",
     "postcss": "^8",
+    "prettier": "^3.2.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "^44.4.3"
+    "vercel": "^44.4.3",
+    "wrangler": "^3.99.0"
   }
 }
