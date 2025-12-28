@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ProcessResponse } from '@/types/api';
 import {
   Play,
@@ -13,6 +13,7 @@ import {
   Target,
   RotateCcw,
   Link2,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -45,6 +46,52 @@ export function TextProcessor() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressStage, setProgressStage] = useState('');
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // 处理进度模拟
+  const stages = [
+    { progress: 10, text: '正在分析文本结构...' },
+    { progress: 25, text: '第 1 轮人性化处理...' },
+    { progress: 45, text: '第 2 轮语义重组...' },
+    { progress: 65, text: '第 3 轮风格优化...' },
+    { progress: 80, text: '正在进行 AI 检测评估...' },
+    { progress: 95, text: '生成最终结果...' },
+  ];
+
+  const startProgress = () => {
+    setProgress(0);
+    setProgressStage(stages[0].text);
+    let stageIndex = 0;
+
+    progressInterval.current = setInterval(() => {
+      stageIndex++;
+      if (stageIndex < stages.length) {
+        setProgress(stages[stageIndex].progress);
+        setProgressStage(stages[stageIndex].text);
+      }
+    }, 2000 + Math.random() * 1000);
+  };
+
+  const stopProgress = (success: boolean) => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
+    }
+    if (success) {
+      setProgress(100);
+      setProgressStage('处理完成！');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, []);
 
   const handleProcess = async () => {
     if (!text.trim()) {
@@ -58,12 +105,15 @@ export function TextProcessor() {
     }
 
     setFieldError(null);
+    setProgress(0);
 
     try {
       setResult(null);
 
       if (mode === 'sync') {
+        startProgress();
         const response = await processText({ text, options });
+        stopProgress(true);
         setResult(response);
       } else {
         const task = await createAsyncTask(text, {
@@ -73,6 +123,9 @@ export function TextProcessor() {
         setResult({ task_id: task.task_id, mode: 'async' });
       }
     } catch (err) {
+      stopProgress(false);
+      setProgress(0);
+      setProgressStage('');
       console.error('处理失败:', err);
     }
   };
@@ -235,6 +288,57 @@ export function TextProcessor() {
             {mode === 'sync' ? '开始处理' : '创建任务'}
           </Button>
         </div>
+
+        {/* Progress Bar */}
+        {loading && mode === 'sync' && (
+          <div className="animate-fade-in space-y-4">
+            <div className="bg-white/80 backdrop-blur-sm border border-[var(--stone-200)]/50 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--coral-100)] to-[var(--coral-200)] flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-[var(--coral-600)] animate-spin" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[var(--stone-800)]">正在处理</p>
+                    <p className="text-sm text-[var(--stone-500)]">{progressStage}</p>
+                  </div>
+                </div>
+                <span className="text-2xl font-display font-bold text-[var(--coral-600)]">
+                  {progress}%
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="relative h-3 bg-[var(--stone-100)] rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[var(--coral-500)] to-[var(--coral-400)] rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+                {/* Shimmer effect */}
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full animate-pulse"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+
+              {/* Stage Indicators */}
+              <div className="flex justify-between mt-4 text-xs text-[var(--stone-400)]">
+                <span className={progress >= 10 ? 'text-[var(--coral-500)]' : ''}>分析</span>
+                <span className={progress >= 25 ? 'text-[var(--coral-500)]' : ''}>第1轮</span>
+                <span className={progress >= 45 ? 'text-[var(--coral-500)]' : ''}>第2轮</span>
+                <span className={progress >= 65 ? 'text-[var(--coral-500)]' : ''}>第3轮</span>
+                <span className={progress >= 80 ? 'text-[var(--coral-500)]' : ''}>检测</span>
+                <span className={progress >= 95 ? 'text-[var(--coral-500)]' : ''}>完成</span>
+              </div>
+            </div>
+
+            {/* Processing Tips */}
+            <div className="flex items-center gap-2 text-sm text-[var(--stone-500)] justify-center">
+              <Sparkles className="w-4 h-4 text-[var(--coral-400)]" />
+              <span>多轮处理可有效降低 AI 检测分数，请耐心等待...</span>
+            </div>
+          </div>
+        )}
 
         {/* Results */}
         {result && (
