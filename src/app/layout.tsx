@@ -1,20 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Crimson_Pro, Outfit } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const crimsonPro = Crimson_Pro({
+  variable: "--font-crimson",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "HumanTouch - AI内容人性化处理系统",
-  description: "将AI生成的文本转换为更自然的人类写作风格，有效降低AI检测概率",
+  title: "HumanTouch - AI 内容人性化处理",
+  description: "将 AI 生成的文本转换为更自然的人类写作风格，有效降低 AI 检测概率",
+  keywords: ["AI", "人性化", "文本处理", "AI检测", "内容优化"],
+  authors: [{ name: "HumanTouch Team" }],
+  openGraph: {
+    title: "HumanTouch - AI 内容人性化处理",
+    description: "将 AI 生成的文本转换为更自然的人类写作风格",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -23,10 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="zh-CN" className={`${crimsonPro.variable} ${outfit.variable}`}>
+      <body className="antialiased">
         {children}
       </body>
     </html>

@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 import type { ProcessResponse } from '@/types/api';
-import { Play, Clock, AlertCircle } from 'lucide-react';
+import {
+  Play,
+  Clock,
+  AlertCircle,
+  Sparkles,
+  Copy,
+  Check,
+  Zap,
+  Target,
+  RotateCcw,
+  Link2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -20,17 +31,20 @@ const styleOptions = [
 export function TextProcessor() {
   const { apiKey } = useApiKey();
   const { processText, createAsyncTask, loading, error } = useApi({ apiKey });
-  
+
   const [text, setText] = useState('');
   const [options, setOptions] = useState({
     rounds: 3,
     style: 'casual' as 'casual' | 'academic' | 'professional' | 'creative',
     target_score: 0.1,
   });
-  const [result, setResult] = useState<ProcessResponse | { task_id: string; mode: 'async' } | null>(null);
+  const [result, setResult] = useState<
+    ProcessResponse | { task_id: string; mode: 'async' } | null
+  >(null);
   const [mode, setMode] = useState<'sync' | 'async'>('sync');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleProcess = async () => {
     if (!text.trim()) {
@@ -39,15 +53,15 @@ export function TextProcessor() {
     }
 
     if (!apiKey) {
-      setFieldError('请先在右上角设置 API Key 再开始处理');
+      setFieldError('请先在顶部设置 API Key');
       return;
     }
 
     setFieldError(null);
-    
+
     try {
       setResult(null);
-      
+
       if (mode === 'sync') {
         const response = await processText({ text, options });
         setResult(response);
@@ -63,38 +77,63 @@ export function TextProcessor() {
     }
   };
 
+  const handleCopy = async () => {
+    if (result && 'processed_text' in result) {
+      await navigator.clipboard.writeText(result.processed_text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleReset = () => {
+    setText('');
+    setResult(null);
+    setFieldError(null);
+  };
+
   return (
-    <Card title="文本处理" description="将AI生成的文本转换为更自然的人类写作风格">
-      <div className="space-y-6">
-        {/* 文本输入 */}
-        <div>
+    <Card
+      title="文本处理"
+      description="将 AI 生成的文本转换为更自然的人类写作风格"
+      icon={<Sparkles className="w-5 h-5" />}
+    >
+      <div className="space-y-8">
+        {/* Text Input Area */}
+        <div className="space-y-3">
           <Textarea
             label="输入文本"
-            placeholder="粘贴需要处理的AI生成文本..."
+            placeholder="粘贴需要处理的 AI 生成文本..."
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={8}
             maxLength={10000}
             disabled={loading || !apiKey}
           />
-          <div className="flex justify-between items-center mt-1 text-sm">
-            <span className={fieldError ? 'text-red-600' : 'text-gray-500'}>
-              {fieldError ?? '最多支持 10000 字符，建议分段处理长文'}
+          <div className="flex justify-between items-center text-sm">
+            <span className={fieldError ? 'text-red-500' : 'text-[var(--stone-500)]'}>
+              {fieldError ?? '最多支持 10,000 字符，建议分段处理长文'}
             </span>
-            <span className="text-gray-500">{text.length}/10000 字符</span>
+            <span className="text-[var(--stone-400)] tabular-nums">
+              {text.length.toLocaleString()}/10,000
+            </span>
           </div>
         </div>
 
-        {/* 处理选项 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Options Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Select
             label="写作风格"
             value={options.style}
-            onChange={(e) => setOptions({ ...options, style: e.target.value as 'casual' | 'academic' | 'professional' | 'creative' })}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                style: e.target.value as 'casual' | 'academic' | 'professional' | 'creative',
+              })
+            }
             options={styleOptions}
             disabled={loading}
           />
-          
+
           <Input
             label="处理轮数"
             type="number"
@@ -103,8 +142,9 @@ export function TextProcessor() {
             value={options.rounds}
             onChange={(e) => setOptions({ ...options, rounds: parseInt(e.target.value) || 3 })}
             disabled={loading}
+            leftIcon={<RotateCcw className="w-4 h-4" />}
           />
-          
+
           <Input
             label="目标分数"
             type="number"
@@ -112,109 +152,167 @@ export function TextProcessor() {
             max={1}
             step={0.01}
             value={options.target_score}
-            onChange={(e) => setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })}
-            helperText="0.0-1.0，越低越难检测为AI"
+            onChange={(e) =>
+              setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })
+            }
+            helperText="0.0-1.0，越低越难检测"
             disabled={loading}
+            leftIcon={<Target className="w-4 h-4" />}
           />
         </div>
 
-        {/* 处理模式 */}
-        <div className="flex space-x-4">
-          <div className="flex items-center">
-            <input
-              type="radio"
-              id="sync-mode"
-              name="mode"
-              value="sync"
-              checked={mode === 'sync'}
-              onChange={() => setMode('sync')}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="sync-mode" className="ml-2 text-sm text-gray-700">
-              同步处理 (实时返回)
-            </label>
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              type="radio"
-              id="async-mode"
-              name="mode"
-              value="async"
-              checked={mode === 'async'}
-              onChange={() => setMode('async')}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="async-mode" className="ml-2 text-sm text-gray-700">
-              异步任务 (适合长文本)
-            </label>
+        {/* Processing Mode */}
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-[var(--stone-700)]">处理模式</label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setMode('sync')}
+              className={`
+                flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-xl border-2
+                transition-all duration-200 text-sm font-medium
+                ${
+                  mode === 'sync'
+                    ? 'border-[var(--coral-500)] bg-[var(--coral-50)] text-[var(--coral-700)]'
+                    : 'border-[var(--stone-200)] bg-white/50 text-[var(--stone-600)] hover:border-[var(--stone-300)]'
+                }
+              `}
+            >
+              <Zap className="w-4 h-4" />
+              <span>同步处理</span>
+              <span className="text-xs opacity-70">实时返回</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode('async')}
+              className={`
+                flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-xl border-2
+                transition-all duration-200 text-sm font-medium
+                ${
+                  mode === 'async'
+                    ? 'border-[var(--teal-500)] bg-[var(--teal-50)] text-[var(--teal-700)]'
+                    : 'border-[var(--stone-200)] bg-white/50 text-[var(--stone-600)] hover:border-[var(--stone-300)]'
+                }
+              `}
+            >
+              <Clock className="w-4 h-4" />
+              <span>异步任务</span>
+              <span className="text-xs opacity-70">适合长文本</span>
+            </button>
           </div>
         </div>
 
-        {/* Webhook URL (异步模式) */}
+        {/* Webhook URL (Async Mode) */}
         {mode === 'async' && (
-          <Input
-            label="Webhook通知URL (可选)"
-            type="url"
-            placeholder="https://your-webhook.com/callback"
-            value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
-            helperText="任务完成后会发送通知到此URL"
-            disabled={loading}
-          />
+          <div className="animate-fade-in">
+            <Input
+              label="Webhook 通知 URL（可选）"
+              type="url"
+              placeholder="https://your-webhook.com/callback"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              helperText="任务完成后会发送通知到此 URL"
+              disabled={loading}
+              leftIcon={<Link2 className="w-4 h-4" />}
+            />
+          </div>
         )}
 
-        {/* 处理按钮 */}
-        <div className="flex justify-end">
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-3">
+          {text && (
+            <Button variant="ghost" onClick={handleReset} disabled={loading}>
+              清空
+            </Button>
+          )}
           <Button
             onClick={handleProcess}
             disabled={loading || !text.trim() || !apiKey}
             loading={loading}
-            className="flex items-center space-x-2"
+            icon={<Play className="w-4 h-4" />}
           >
-            <Play className="h-4 w-4" />
-            <span>{mode === 'sync' ? '同步处理' : '创建任务'}</span>
+            {mode === 'sync' ? '开始处理' : '创建任务'}
           </Button>
         </div>
 
-        {/* 结果展示 */}
+        {/* Results */}
         {result && (
-          <div className="border-t pt-6">
-            {mode === 'sync' ? (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">处理结果</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">AI检测分数</h4>
-                    <div className="space-y-1 text-sm">
-                      <div>ZeroGPT: {((result as ProcessResponse).detection_scores?.zerogpt * 100).toFixed(1)}%</div>
-                      <div>GPTZero: {((result as ProcessResponse).detection_scores?.gptzero * 100).toFixed(1)}%</div>
-                      <div>Copyleaks: {((result as ProcessResponse).detection_scores?.copyleaks * 100).toFixed(1)}%</div>
-                    </div>
+          <div className="border-t border-[var(--stone-200)]/50 pt-8 animate-fade-in-up">
+            {mode === 'sync' && 'processed_text' in result ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-xl font-semibold text-[var(--stone-900)]">
+                    处理结果
+                  </h3>
+                  <Button variant="outline" size="sm" onClick={handleCopy}>
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 text-[var(--teal-500)]" />
+                        <span>已复制</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>复制结果</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Score Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-[var(--stone-50)] rounded-xl p-4">
+                    <p className="text-xs text-[var(--stone-500)] mb-1">ZeroGPT</p>
+                    <p className="font-display text-2xl font-bold text-[var(--stone-900)]">
+                      {((result as ProcessResponse).detection_scores?.zerogpt * 100).toFixed(1)}%
+                    </p>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">处理信息</h4>
-                    <div className="space-y-1 text-sm">
-                      <div>处理时间: {(result as ProcessResponse).processing_time?.toFixed(2)}s</div>
-                      <div>使用轮数: {(result as ProcessResponse).rounds_used}</div>
-                      <div>文本长度: {(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length}</div>
-                    </div>
+                  <div className="bg-[var(--stone-50)] rounded-xl p-4">
+                    <p className="text-xs text-[var(--stone-500)] mb-1">GPTZero</p>
+                    <p className="font-display text-2xl font-bold text-[var(--stone-900)]">
+                      {((result as ProcessResponse).detection_scores?.gptzero * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="bg-[var(--stone-50)] rounded-xl p-4">
+                    <p className="text-xs text-[var(--stone-500)] mb-1">Copyleaks</p>
+                    <p className="font-display text-2xl font-bold text-[var(--stone-900)]">
+                      {((result as ProcessResponse).detection_scores?.copyleaks * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] rounded-xl p-4">
+                    <p className="text-xs text-[var(--coral-600)] mb-1">处理时间</p>
+                    <p className="font-display text-2xl font-bold text-[var(--coral-700)]">
+                      {(result as ProcessResponse).processing_time?.toFixed(2)}s
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-medium mb-2">处理后的文本</h4>
-                  <div className="bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
-                    {(result as ProcessResponse).processed_text}
+
+                {/* Processed Text */}
+                <div className="bg-white/80 backdrop-blur-sm border border-[var(--stone-200)]/50 rounded-xl p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="w-4 h-4 text-[var(--coral-500)]" />
+                    <span className="text-sm font-medium text-[var(--stone-700)]">处理后的文本</span>
+                    <span className="text-xs text-[var(--stone-400)]">
+                      ({(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length} 字符)
+                    </span>
                   </div>
+                  <p className="text-[var(--stone-700)] leading-relaxed whitespace-pre-wrap">
+                    {(result as ProcessResponse).processed_text}
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 text-blue-600 mr-2" />
+              <div className="bg-gradient-to-br from-[var(--teal-50)] to-[var(--teal-100)] border border-[var(--teal-200)] rounded-xl p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--teal-500)] flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <p className="font-medium">异步任务已创建</p>
-                    <p className="text-sm text-gray-600">任务ID: {(result as { task_id: string }).task_id}</p>
+                    <p className="font-medium text-[var(--teal-800)]">异步任务已创建</p>
+                    <p className="text-sm text-[var(--teal-600)]">
+                      任务 ID: <code className="bg-white/50 px-2 py-0.5 rounded">{(result as { task_id: string }).task_id}</code>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -222,26 +320,34 @@ export function TextProcessor() {
           </div>
         )}
 
-        {/* 错误提示 */}
+        {/* Error Alert */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-              <p className="text-sm text-red-800">
-                {error.code === 'RATE_LIMIT_EXCEEDED'
-                  ? '请求过于频繁，请稍后再试。'
-                  : error.message || '处理过程中出现错误，请稍后重试。'}
-              </p>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-red-800">处理出错</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {error.code === 'RATE_LIMIT_EXCEEDED'
+                    ? '请求过于频繁，请稍后再试。'
+                    : error.message || '处理过程中出现错误，请稍后重试。'}
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* 未认证提示 */}
+        {/* No API Key Warning */}
         {!apiKey && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-              <p className="text-sm text-yellow-800">请先设置API密钥以开始使用</p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800">需要 API Key</p>
+                <p className="text-sm text-amber-600 mt-1">
+                  请先在页面顶部设置 API Key 以开始使用
+                </p>
+              </div>
             </div>
           </div>
         )}
