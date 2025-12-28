@@ -218,7 +218,7 @@ Configure ONE of the following in your environment:
 #### Option 1: OpenRouter (Recommended - 200+ models)
 ```env
 OPENROUTER_API_KEY=sk-or-your-openrouter-key
-OPENROUTER_MODEL=anthropic/claude-sonnet-4  # Default model
+OPENROUTER_MODEL=google/gemini-2.5-flash-preview  # Default model (fast & affordable)
 ```
 
 #### Option 2: Moonshot
@@ -247,7 +247,7 @@ If multiple providers are configured:
 |----------|----------|---------|-------------|
 | **LLM - OpenRouter** |
 | `OPENROUTER_API_KEY` | ✅* | - | OpenRouter API key |
-| `OPENROUTER_MODEL` | ❌ | `anthropic/claude-sonnet-4` | Default model |
+| `OPENROUTER_MODEL` | ❌ | `google/gemini-2.5-flash-preview` | Default model |
 | **LLM - Moonshot** |
 | `MOONSHOT_API_KEY` | ✅* | - | Moonshot API key |
 | `MOONSHOT_MODEL` | ❌ | `kimi-k2-0711-preview` | Default model |

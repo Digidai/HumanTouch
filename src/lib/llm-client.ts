@@ -105,7 +105,7 @@ export class LLMClient {
   private getDefaultModel(): string {
     switch (this.provider) {
       case 'openrouter':
-        return process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4';
+        return process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-preview';
       case 'moonshot':
         return process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview';
       case 'custom':

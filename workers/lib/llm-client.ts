@@ -63,7 +63,7 @@ export class LLMClient {
   }
 
   private getDefaultModel(env: Env): string {
-    if (this.provider === 'openrouter') return env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4';
+    if (this.provider === 'openrouter') return env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-preview';
     if (this.provider === 'moonshot') return env.MOONSHOT_MODEL || 'kimi-k2-0711-preview';
     return env.CUSTOM_LLM_MODEL || 'gpt-4';
   }
