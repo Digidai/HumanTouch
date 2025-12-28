@@ -175,19 +175,40 @@ export class LLMClient {
       headers['X-Title'] = 'HumanTouch';
     }
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(request),
-    });
+    // 添加超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55秒超时
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`LLM API error (${this.provider}): ${response.status} - ${errorText}`);
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LLM API error (${this.provider}): ${response.status} - ${errorText}`);
+      }
+
+      const data: ChatResponse = await response.json();
+      return data.choices[0]?.message?.content || text;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error(`LLM API timeout (${this.provider}): 请求超时，请稍后重试`);
+        }
+        // 改进 fetch failed 错误信息
+        if (error.message === 'fetch failed' || error.message.includes('fetch')) {
+          throw new Error(`LLM API 网络错误 (${this.provider}): 无法连接到 ${this.baseUrl}，请检查网络或稍后重试`);
+        }
+      }
+      throw error;
     }
-
-    const data: ChatResponse = await response.json();
-    return data.choices[0]?.message?.content || text;
   }
 
   private getHumanizationInstruction(round: number, style: string, targetScore: number): string {

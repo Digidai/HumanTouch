@@ -146,10 +146,14 @@ export async function POST(request: NextRequest) {
       code = 'RATE_LIMIT';
       message = 'API 调用次数超限，请稍后再试';
       status = 429;
-    } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+    } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT') || errorMessage.includes('LLM API timeout')) {
       code = 'TIMEOUT';
       message = '请求超时，请稍后重试';
       status = 504;
+    } else if (errorMessage.includes('网络错误') || errorMessage.includes('fetch failed') || errorMessage.includes('fetch')) {
+      code = 'NETWORK_ERROR';
+      message = 'LLM 服务网络连接失败，请稍后重试';
+      status = 503;
     } else if (errorMessage.includes('LLM API error')) {
       code = 'LLM_ERROR';
       message = 'LLM 服务调用失败';
