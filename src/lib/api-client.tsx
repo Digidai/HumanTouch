@@ -95,8 +95,16 @@ export function useApi(options: UseApiOptions = {}) {
     return makeRequest('/batch', 'POST', request) as Promise<BatchResponse>;
   }, [makeRequest]);
 
-  const createAsyncTask = useCallback(async (text: string, options?: Record<string, unknown>) => {
-    return makeRequest('/async', 'POST', { text, options }) as Promise<AsyncTaskResponse>;
+  const createAsyncTask = useCallback(async (
+    text: string,
+    options?: Record<string, unknown>,
+    apiKey?: string
+  ) => {
+    return makeRequest('/async', 'POST', {
+      text,
+      options,
+      ...(apiKey && { api_key: apiKey }),
+    }) as Promise<AsyncTaskResponse>;
   }, [makeRequest]);
 
   const getTaskStatus = useCallback(async (taskId: string) => {
@@ -129,60 +137,68 @@ export function useApi(options: UseApiOptions = {}) {
   };
 }
 
-// API Key Context for sharing state across components
-interface ApiKeyContextType {
+// LLM Settings Context for sharing API key and model across components
+interface LlmSettingsContextType {
   apiKey: string | null;
-  saveApiKey: (key: string) => void;
-  loadApiKey: () => string | null;
-  clearApiKey: () => void;
+  model: string | null;
+  saveSettings: (apiKey: string, model: string) => void;
+  clearSettings: () => void;
+  isConfigured: boolean;
 }
 
-const ApiKeyContext = createContext<ApiKeyContextType | null>(null);
+const LlmSettingsContext = createContext<LlmSettingsContextType | null>(null);
 
-export function ApiKeyProvider({ children }: { children: ReactNode }) {
+const STORAGE_KEY_API = 'humantouch_api_key';
+const STORAGE_KEY_MODEL = 'humantouch_model';
+
+export function LlmSettingsProvider({ children }: { children: ReactNode }) {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [model, setModel] = useState<string | null>(null);
 
-  // Load API key from localStorage on mount
+  // Load settings from localStorage on mount
   useEffect(() => {
-    const key = localStorage.getItem('humantouch_api_key');
-    if (key) {
-      setApiKey(key);
-    }
+    const savedKey = localStorage.getItem(STORAGE_KEY_API);
+    const savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
+    if (savedKey) setApiKey(savedKey);
+    if (savedModel) setModel(savedModel);
   }, []);
 
-  const saveApiKey = useCallback((key: string) => {
-    localStorage.setItem('humantouch_api_key', key);
-    setApiKey(key);
+  const saveSettings = useCallback((newApiKey: string, newModel: string) => {
+    localStorage.setItem(STORAGE_KEY_API, newApiKey);
+    localStorage.setItem(STORAGE_KEY_MODEL, newModel);
+    setApiKey(newApiKey);
+    setModel(newModel);
   }, []);
 
-  const loadApiKey = useCallback(() => {
-    const key = localStorage.getItem('humantouch_api_key');
-    setApiKey(key);
-    return key;
-  }, []);
-
-  const clearApiKey = useCallback(() => {
-    localStorage.removeItem('humantouch_api_key');
+  const clearSettings = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY_API);
+    localStorage.removeItem(STORAGE_KEY_MODEL);
     setApiKey(null);
+    setModel(null);
   }, []);
+
+  const isConfigured = Boolean(apiKey && model);
 
   return (
-    <ApiKeyContext.Provider value={{ apiKey, saveApiKey, loadApiKey, clearApiKey }}>
+    <LlmSettingsContext.Provider value={{ apiKey, model, saveSettings, clearSettings, isConfigured }}>
       {children}
-    </ApiKeyContext.Provider>
+    </LlmSettingsContext.Provider>
   );
 }
 
-export function useApiKey() {
-  const context = useContext(ApiKeyContext);
+export function useLlmSettings() {
+  const context = useContext(LlmSettingsContext);
 
-  // Fallback for when used outside provider (shouldn't happen, but for safety)
+  // Fallback for when used outside provider
   const [fallbackKey, setFallbackKey] = useState<string | null>(null);
+  const [fallbackModel, setFallbackModel] = useState<string | null>(null);
 
   useEffect(() => {
     if (!context) {
-      const key = localStorage.getItem('humantouch_api_key');
+      const key = localStorage.getItem(STORAGE_KEY_API);
+      const model = localStorage.getItem(STORAGE_KEY_MODEL);
       if (key) setFallbackKey(key);
+      if (model) setFallbackModel(model);
     }
   }, [context]);
 
@@ -193,18 +209,23 @@ export function useApiKey() {
   // Fallback implementation
   return {
     apiKey: fallbackKey,
-    saveApiKey: (key: string) => {
-      localStorage.setItem('humantouch_api_key', key);
-      setFallbackKey(key);
+    model: fallbackModel,
+    saveSettings: (newApiKey: string, newModel: string) => {
+      localStorage.setItem(STORAGE_KEY_API, newApiKey);
+      localStorage.setItem(STORAGE_KEY_MODEL, newModel);
+      setFallbackKey(newApiKey);
+      setFallbackModel(newModel);
     },
-    loadApiKey: () => {
-      const key = localStorage.getItem('humantouch_api_key');
-      setFallbackKey(key);
-      return key;
-    },
-    clearApiKey: () => {
-      localStorage.removeItem('humantouch_api_key');
+    clearSettings: () => {
+      localStorage.removeItem(STORAGE_KEY_API);
+      localStorage.removeItem(STORAGE_KEY_MODEL);
       setFallbackKey(null);
+      setFallbackModel(null);
     },
+    isConfigured: Boolean(fallbackKey && fallbackModel),
   };
 }
+
+// Backwards compatibility alias
+export const ApiKeyProvider = LlmSettingsProvider;
+export const useApiKey = useLlmSettings;

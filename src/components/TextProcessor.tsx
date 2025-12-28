@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
-import { useApi } from '@/lib/api-client';
+import { useApi, useLlmSettings } from '@/lib/api-client';
 
 const styleOptions = [
   { value: 'casual', label: '轻松随意' },
@@ -31,6 +31,7 @@ const styleOptions = [
 
 export function TextProcessor() {
   const { processText, createAsyncTask, loading, error } = useApi();
+  const { apiKey: llmApiKey, model: llmModel, isConfigured } = useLlmSettings();
 
   const [text, setText] = useState('');
   const [options, setOptions] = useState({
@@ -104,16 +105,26 @@ export function TextProcessor() {
     try {
       setResult(null);
 
+      // Build request with optional custom LLM settings
+      const requestOptions = isConfigured
+        ? { ...options, model: llmModel! }
+        : options;
+
       if (mode === 'sync') {
         startProgress();
-        const response = await processText({ text, options });
+        const response = await processText({
+          text,
+          options: requestOptions,
+          ...(isConfigured && { api_key: llmApiKey! }),
+        });
         stopProgress(true);
         setResult(response);
       } else {
-        const task = await createAsyncTask(text, {
-          ...options,
-          notify_url: webhookUrl || undefined,
-        });
+        const task = await createAsyncTask(
+          text,
+          { ...requestOptions, notify_url: webhookUrl || undefined },
+          isConfigured ? llmApiKey! : undefined
+        );
         setResult({ task_id: task.task_id, mode: 'async' });
       }
     } catch (err) {
