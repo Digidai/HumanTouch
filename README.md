@@ -9,9 +9,9 @@
 将 AI 生成的文本转换为更自然的人类写作风格，有效降低 AI 检测概率
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange?logo=cloudflare)](https://workers.cloudflare.com/)
+[![OpenRouter](https://img.shields.io/badge/OpenRouter-200%2B%20Models-green)](https://openrouter.ai/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [English](#features) | [中文文档](#功能特性)
@@ -80,10 +80,16 @@ Use any API that follows OpenAI's chat completions format (e.g., local LLMs, sel
 
 ## 🚀 Quick Start
 
+### Use Online (No Setup Required)
+
+Visit the deployed app and enter your own **OpenRouter API Key** directly in the UI:
+1. Get a free API key from [OpenRouter](https://openrouter.ai/keys)
+2. Enter it in the top-right corner of the app
+3. Start processing text immediately
+
 ### One-Click Deploy
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Digidai/HumanTouch&env=OPENROUTER_API_KEY,JWT_SECRET,ALLOWED_API_KEYS)
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Digidai/HumanTouch)
 
 ### Local Development
 
@@ -290,51 +296,42 @@ If multiple providers are configured:
 ┌─────────────────────────────────────────────────────────────┐
 │                        Frontend                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Next.js   │  │   React 19  │  │   Tailwind CSS 4    │  │
+│  │  Next.js 16 │  │   React 19  │  │   Tailwind CSS 4    │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      API Layer                               │
+│                   API Layer (Vercel)                         │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  /api/v1/process  │  /api/v1/validate  │  /api/v1/*  │    │
 │  └─────────────────────────────────────────────────────┘    │
-│         Vercel Serverless    OR    Cloudflare Workers        │
 └─────────────────────────────────────────────────────────────┘
                               │
-                    ┌─────────┴─────────┐
-                    ▼                   ▼
-          ┌─────────────────┐ ┌─────────────────┐
-          │   OpenRouter    │ │   Custom LLM    │
-          │  (200+ Models)  │ │ (OpenAI-compat) │
-          └─────────────────┘ └─────────────────┘
+                              ▼
+                    ┌─────────────────┐
+                    │   OpenRouter    │
+                    │  (200+ Models)  │
+                    │ Claude, GPT-4o, │
+                    │ Gemini, Llama.. │
+                    └─────────────────┘
 ```
 
 ---
 
 ## 🚀 Deployment
 
-### Vercel (Full-stack)
+### Vercel (Recommended)
 
+1. Click the "Deploy with Vercel" button above
+2. Set environment variables:
+   - `OPENROUTER_API_KEY`: Your OpenRouter API key
+3. Deploy!
+
+Or deploy via CLI:
 ```bash
 npm run deploy
 ```
-
-### Cloudflare Workers (API only)
-
-```bash
-npx wrangler login
-npm run cf:secret OPENROUTER_API_KEY
-npm run cf:secret JWT_SECRET
-npm run cf:secret ALLOWED_API_KEYS
-npm run deploy:cf
-```
-
-| Platform | Pros | Limits (Free) |
-|----------|------|---------------|
-| **Vercel** | Full-stack, zero config | 10s timeout, 100K/mo |
-| **Cloudflare Workers** | Higher limits, faster | API only, 30s CPU |
 
 ---
 
