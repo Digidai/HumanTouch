@@ -127,9 +127,10 @@ export class TaskQueue {
     task.updated_at = new Date().toISOString();
 
     try {
-      const { moonshotClient } = await import('./moonshot');
-      
-      const processingResult = await moonshotClient.processText(task.text, task.options);
+      const { getLLMClient } = await import('./llm-client');
+      const llmClient = getLLMClient();
+
+      const processingResult = await llmClient.processText(task.text, task.options);
       
       // 转换为ProcessResponse格式
       const result: ProcessResponse = {

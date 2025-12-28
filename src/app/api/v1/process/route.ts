@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // 创建 LLM 客户端（支持用户提供的 API Key 或使用环境变量配置）
     const llmClient = new LLMClient(userLLMKey ? {
-      provider: 'moonshot',
+      provider: 'openrouter',
       apiKey: userLLMKey,
     } : undefined);
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       status = 401;
     } else if (errorMessage.includes('401') || errorMessage.includes('Invalid Authentication')) {
       code = 'INVALID_API_KEY';
-      message = 'API Key 无效，请检查您的 Moonshot API Key 是否正确';
+      message = 'API Key 无效，请检查您的 OpenRouter API Key 是否正确';
       status = 401;
     } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
       code = 'RATE_LIMIT';

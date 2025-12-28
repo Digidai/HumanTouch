@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { moonshotClient } from '@/lib/moonshot';
+import { getLLMClient } from '@/lib/llm-client';
 import { createAuthMiddleware } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { BatchRequest, BatchResponse, ApiResponse } from '@/types/api';
@@ -87,13 +87,14 @@ export async function POST(request: NextRequest) {
     const style = body.options?.style || 'casual';
 
     // 批量处理文本
+    const llmClient = getLLMClient();
     const results = await Promise.all(
       texts.map(async (text) => {
-        const result = await moonshotClient.processText(text, {
+        const result = await llmClient.processText(text, {
           rounds,
           style,
         });
-        
+
         return {
           original_text: text,
           processed_text: result.processedText,

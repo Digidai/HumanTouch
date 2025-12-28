@@ -1,14 +1,10 @@
 import { detectorClient } from './detectors';
 
 // 支持的 LLM 提供商
-export type LLMProvider = 'moonshot' | 'openrouter' | 'custom';
+export type LLMProvider = 'openrouter' | 'custom';
 
 // 提供商配置
 const PROVIDER_CONFIG: Record<LLMProvider, { baseUrl: string; envKey: string }> = {
-  moonshot: {
-    baseUrl: 'https://api.moonshot.cn/v1',
-    envKey: 'MOONSHOT_API_KEY',
-  },
   openrouter: {
     baseUrl: 'https://openrouter.ai/api/v1',
     envKey: 'OPENROUTER_API_KEY',
@@ -83,18 +79,15 @@ export class LLMClient {
   }
 
   private detectProvider(): LLMProvider {
-    if (process.env.MOONSHOT_API_KEY) return 'moonshot';
     if (process.env.OPENROUTER_API_KEY) return 'openrouter';
     if (process.env.CUSTOM_LLM_API_KEY && process.env.CUSTOM_LLM_BASE_URL) return 'custom';
-    return 'moonshot'; // 默认使用 Moonshot
+    return 'openrouter'; // 默认使用 OpenRouter
   }
 
   private getApiKey(): string {
     switch (this.provider) {
       case 'openrouter':
         return process.env.OPENROUTER_API_KEY || '';
-      case 'moonshot':
-        return process.env.MOONSHOT_API_KEY || '';
       case 'custom':
         return process.env.CUSTOM_LLM_API_KEY || '';
       default:
@@ -106,12 +99,10 @@ export class LLMClient {
     switch (this.provider) {
       case 'openrouter':
         return process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-preview';
-      case 'moonshot':
-        return process.env.MOONSHOT_MODEL || 'kimi-k2-0711-preview';
       case 'custom':
         return process.env.CUSTOM_LLM_MODEL || 'gpt-4';
       default:
-        return 'kimi-k2-0711-preview';
+        return 'google/gemini-2.5-flash-preview';
     }
   }
 
@@ -167,13 +158,9 @@ export class LLMClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.apiKey}`,
+      'HTTP-Referer': process.env.SITE_URL || 'https://humantouch.dev',
+      'X-Title': 'HumanTouch',
     };
-
-    // OpenRouter 需要额外的 headers
-    if (this.provider === 'openrouter') {
-      headers['HTTP-Referer'] = process.env.SITE_URL || 'https://humantouch.dev';
-      headers['X-Title'] = 'HumanTouch';
-    }
 
     // 添加超时控制
     const controller = new AbortController();
@@ -292,9 +279,3 @@ export function getLLMClient(): LLMClient {
   }
   return _llmClient;
 }
-
-// 向后兼容：保留 moonshotClient 别名（延迟获取）
-export const moonshotClient = {
-  processText: (...args: Parameters<LLMClient['processText']>) => getLLMClient().processText(...args),
-  getConfig: () => getLLMClient().getConfig(),
-};

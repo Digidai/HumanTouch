@@ -73,8 +73,9 @@ export class AuthManager {
 
   validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[]; isLLMKey?: boolean } {
     // 检查是否是 LLM 提供商的 API Key (用于直接调用 LLM)
-    if (apiKey.startsWith('sk-')) {
-      // Moonshot/OpenAI 格式的 key，允许通过并标记为 LLM Key
+    // OpenRouter keys 以 sk-or- 开头，也支持其他 sk- 格式
+    if (apiKey.startsWith('sk-or-') || apiKey.startsWith('sk-')) {
+      // OpenRouter/OpenAI 格式的 key，允许通过并标记为 LLM Key
       return {
         valid: true,
         userId: 'llm-user',
