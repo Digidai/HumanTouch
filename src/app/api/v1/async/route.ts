@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
     const rounds = body.options?.rounds || 3;
     const style = body.options?.style || 'casual';
     const webhook_url = body.options?.notify_url;
-    const model = accessMode === 'private' ? body.options?.model : undefined;
-
     const llmApiKey = body.api_key || (body as { key?: string }).key;
+
+    // 私有模式必须提供 api_key
     if (accessMode === 'private' && !llmApiKey) {
       return NextResponse.json(
         {
@@ -86,24 +86,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (accessMode === 'public' && body.options?.model) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'MODEL_NOT_ALLOWED',
-            message: '公开模式仅支持默认模型',
-            details: '请移除 model 参数',
-          },
-          meta: {
-            request_id: requestId,
-            timestamp: new Date().toISOString(),
-            api_version: 'v1',
-          },
-        } as ApiResponse,
-        { status: 400 }
-      );
-    }
+    // 公开模式：如果提供了 api_key，可以使用自定义模型；否则使用默认模型
+    const useCustomLlm = Boolean(llmApiKey);
+    const model = useCustomLlm ? body.options?.model : undefined;
 
     // 估算处理时间（基于文本长度和轮数）
     const estimatedTime = Math.max(1, Math.ceil(text.length / 1000) * rounds);
@@ -119,7 +104,7 @@ export async function POST(request: NextRequest) {
         model,
       },
       webhook_url,
-      accessMode === 'private' ? llmApiKey : undefined
+      useCustomLlm ? llmApiKey : undefined
     );
 
     const response: ApiResponse = {
