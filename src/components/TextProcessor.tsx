@@ -62,10 +62,11 @@ export function TextProcessor() {
     if (!p) return '';
     if (p.stage === 'analyzing') return t('progress.analyzing');
     if (p.stage === 'round') {
+      const round = p.round ?? 1;
       if (p.chunk && p.totalChunks && p.totalChunks > 1) {
-        return t('progress.chunkRound', { chunk: p.chunk, totalChunks: p.totalChunks, round: p.round });
+        return t('progress.chunkRound', { chunk: p.chunk, totalChunks: p.totalChunks, round });
       }
-      return t('progress.roundN', { round: p.round });
+      return t('progress.roundN', { round });
     }
     if (p.stage === 'detecting') return t('progress.detecting');
     if (p.stage === 'completed') return t('progress.completed');
