@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, BarChart3, Upload } from 'lucide-react';
+import { FileText, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { TextProcessor } from './TextProcessor';
-import { TaskMonitor } from './TaskMonitor';
 import { BatchProcessor } from './BatchProcessor';
 
 export function Dashboard() {
@@ -23,12 +22,6 @@ export function Dashboard() {
       name: t('tabs.batch'),
       icon: Upload,
       component: BatchProcessor,
-    },
-    {
-      id: 'monitor',
-      name: t('tabs.monitor'),
-      icon: BarChart3,
-      component: TaskMonitor,
     },
   ];
 
