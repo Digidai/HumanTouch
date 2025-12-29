@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { ProcessResponse } from '@/types/api';
 import {
@@ -21,12 +21,16 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
-import { useApi, useLlmSettings } from '@/lib/api-client';
+import { useApi, useLlmSettings, useStreamProcess, StreamProgress } from '@/lib/api-client';
 
 export function TextProcessor() {
   const t = useTranslations('processor');
-  const { processText, createAsyncTask, loading, error } = useApi();
+  const { createAsyncTask, error: asyncError } = useApi();
+  const { processTextStream, loading, error: streamError, progress: streamProgress } = useStreamProcess();
   const { apiKey: llmApiKey, model: llmModel, isConfigured } = useLlmSettings();
+
+  // 合并错误状态
+  const error = streamError || asyncError;
 
   const styleOptions = [
     { value: 'casual', label: t('options.styles.casual') },
@@ -48,52 +52,25 @@ export function TextProcessor() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [progressStage, setProgressStage] = useState('');
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // 处理进度模拟
-  const stages = [
-    { progress: 10, text: t('progress.analyzing') },
-    { progress: 25, text: t('progress.round1') },
-    { progress: 45, text: t('progress.round2') },
-    { progress: 65, text: t('progress.round3') },
-    { progress: 80, text: t('progress.detecting') },
-    { progress: 95, text: t('progress.generating') },
-  ];
+  // 使用真实的 SSE 进度
+  const progress = streamProgress?.progress ?? 0;
+  const progressStage = streamProgress?.message ?? '';
 
-  const startProgress = () => {
-    setProgress(0);
-    setProgressStage(stages[0].text);
-    let stageIndex = 0;
-
-    progressInterval.current = setInterval(() => {
-      stageIndex++;
-      if (stageIndex < stages.length) {
-        setProgress(stages[stageIndex].progress);
-        setProgressStage(stages[stageIndex].text);
+  // 获取进度显示文本
+  const getProgressStageText = (p: StreamProgress | null): string => {
+    if (!p) return '';
+    if (p.stage === 'analyzing') return t('progress.analyzing');
+    if (p.stage === 'round') {
+      if (p.chunk && p.totalChunks && p.totalChunks > 1) {
+        return t('progress.chunkRound', { chunk: p.chunk, totalChunks: p.totalChunks, round: p.round });
       }
-    }, 2000 + Math.random() * 1000);
-  };
-
-  const stopProgress = (success: boolean) => {
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
-      progressInterval.current = null;
+      return t('progress.roundN', { round: p.round });
     }
-    if (success) {
-      setProgress(100);
-      setProgressStage(t('progress.completed'));
-    }
+    if (p.stage === 'detecting') return t('progress.detecting');
+    if (p.stage === 'completed') return t('progress.completed');
+    return p.message;
   };
-
-  useEffect(() => {
-    return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
-    };
-  }, []);
 
   const handleProcess = async () => {
     if (!text.trim()) {
@@ -102,7 +79,6 @@ export function TextProcessor() {
     }
 
     setFieldError(null);
-    setProgress(0);
 
     try {
       setResult(null);
@@ -113,14 +89,15 @@ export function TextProcessor() {
         : options;
 
       if (mode === 'sync') {
-        startProgress();
-        const response = await processText({
+        // 使用 SSE 流式处理获取真实进度
+        const response = await processTextStream({
           text,
           options: requestOptions,
           ...(isConfigured && { api_key: llmApiKey! }),
         });
-        stopProgress(true);
-        setResult(response);
+        if (response) {
+          setResult(response);
+        }
       } else {
         const task = await createAsyncTask(
           text,
@@ -130,9 +107,6 @@ export function TextProcessor() {
         setResult({ task_id: task.task_id, mode: 'async' });
       }
     } catch (err) {
-      stopProgress(false);
-      setProgress(0);
-      setProgressStage('');
       console.error('处理失败:', err);
     }
   };
@@ -307,7 +281,7 @@ export function TextProcessor() {
                   </div>
                   <div>
                     <p className="font-medium text-[var(--stone-800)]">{t('progress.processing')}</p>
-                    <p className="text-sm text-[var(--stone-500)]">{progressStage}</p>
+                    <p className="text-sm text-[var(--stone-500)]">{getProgressStageText(streamProgress)}</p>
                   </div>
                 </div>
                 <span className="text-2xl font-display font-bold text-[var(--coral-600)]">
@@ -328,14 +302,33 @@ export function TextProcessor() {
                 />
               </div>
 
-              {/* Stage Indicators */}
+              {/* Stage Indicators - 根据实际轮次动态显示 */}
               <div className="flex justify-between mt-4 text-xs text-[var(--stone-400)]">
-                <span className={progress >= 10 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.analyze')}</span>
-                <span className={progress >= 25 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.r1')}</span>
-                <span className={progress >= 45 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.r2')}</span>
-                <span className={progress >= 65 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.r3')}</span>
-                <span className={progress >= 80 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.detect')}</span>
-                <span className={progress >= 95 ? 'text-[var(--coral-500)]' : ''}>{t('progress.stages.done')}</span>
+                <span className={streamProgress?.stage === 'analyzing' || progress > 5 ? 'text-[var(--coral-500)]' : ''}>
+                  {t('progress.stages.analyze')}
+                </span>
+                {Array.from({ length: options.rounds }, (_, i) => (
+                  <span
+                    key={i}
+                    className={
+                      streamProgress?.stage === 'round' && streamProgress.round && streamProgress.round > i
+                        ? 'text-[var(--coral-500)]'
+                        : streamProgress?.stage === 'round' && streamProgress.round === i + 1
+                        ? 'text-[var(--coral-500)] font-medium'
+                        : streamProgress?.stage === 'detecting' || streamProgress?.stage === 'completed'
+                        ? 'text-[var(--coral-500)]'
+                        : ''
+                    }
+                  >
+                    {t('progress.stages.roundN', { n: i + 1 })}
+                  </span>
+                ))}
+                <span className={streamProgress?.stage === 'detecting' || streamProgress?.stage === 'completed' ? 'text-[var(--coral-500)]' : ''}>
+                  {t('progress.stages.detect')}
+                </span>
+                <span className={streamProgress?.stage === 'completed' ? 'text-[var(--coral-500)]' : ''}>
+                  {t('progress.stages.done')}
+                </span>
               </div>
             </div>
 

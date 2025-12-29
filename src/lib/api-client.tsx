@@ -229,3 +229,136 @@ export function useLlmSettings() {
 // Backwards compatibility alias
 export const ApiKeyProvider = LlmSettingsProvider;
 export const useApiKey = useLlmSettings;
+
+// SSE 流式处理进度类型
+export interface StreamProgress {
+  stage: 'analyzing' | 'round' | 'detecting' | 'completed';
+  progress: number;
+  message: string;
+  round?: number;
+  totalRounds?: number;
+  chunk?: number;
+  totalChunks?: number;
+}
+
+interface UseStreamProcessOptions {
+  onProgress?: (progress: StreamProgress) => void;
+  onError?: (error: ApiError) => void;
+  onComplete?: (result: ProcessResponse) => void;
+}
+
+export function useStreamProcess() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [progress, setProgress] = useState<StreamProgress | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  const processTextStream = useCallback(async (
+    request: ProcessRequest,
+    options: UseStreamProcessOptions = {}
+  ): Promise<ProcessResponse | null> => {
+    setLoading(true);
+    setError(null);
+    setProgress(null);
+
+    const controller = new AbortController();
+    setAbortController(controller);
+
+    try {
+      const response = await fetch(`${API_BASE}/process/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let result: ProcessResponse | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // 解析 SSE 事件
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let eventType = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7);
+          } else if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+
+            if (eventType === 'progress') {
+              setProgress(data);
+              options.onProgress?.(data);
+            } else if (eventType === 'result') {
+              result = data;
+              options.onComplete?.(data);
+            } else if (eventType === 'error') {
+              const apiError: ApiError = {
+                code: data.code,
+                message: data.message,
+                details: data.details,
+              };
+              setError(apiError);
+              options.onError?.(apiError);
+              throw apiError;
+            }
+          }
+        }
+      }
+
+      return result;
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        return null;
+      }
+
+      let apiError: ApiError;
+      if (err && typeof err === 'object' && 'code' in (err as ApiError)) {
+        apiError = err as ApiError;
+      } else {
+        apiError = {
+          code: 'REQUEST_ERROR',
+          message: err instanceof Error ? err.message : '请求失败',
+        };
+      }
+
+      setError(apiError);
+      options.onError?.(apiError);
+      throw apiError;
+    } finally {
+      setLoading(false);
+      setAbortController(null);
+    }
+  }, []);
+
+  const abort = useCallback(() => {
+    abortController?.abort();
+  }, [abortController]);
+
+  return {
+    loading,
+    error,
+    progress,
+    processTextStream,
+    abort,
+    clearError: () => setError(null),
+  };
+}

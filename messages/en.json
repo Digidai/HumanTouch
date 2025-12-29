@@ -113,6 +113,8 @@
       "round1": "Round 1: Humanization...",
       "round2": "Round 2: Syntax restructuring...",
       "round3": "Round 3: Style optimization...",
+      "roundN": "Round {round} rewriting...",
+      "chunkRound": "Chunk {chunk}/{totalChunks}, Round {round} rewriting...",
       "detecting": "Running AI detection...",
       "generating": "Generating final result...",
       "completed": "Processing complete!",
@@ -121,6 +123,7 @@
         "r1": "Round 1",
         "r2": "Round 2",
         "r3": "Round 3",
+        "roundN": "Round {n}",
         "detect": "Detect",
         "done": "Done"
       },

@@ -113,6 +113,8 @@
       "round1": "第 1 轮人性化处理...",
       "round2": "第 2 轮语义重组...",
       "round3": "第 3 轮风格优化...",
+      "roundN": "第 {round} 轮改写中...",
+      "chunkRound": "第 {chunk}/{totalChunks} 段，第 {round} 轮改写中...",
       "detecting": "正在进行 AI 检测评估...",
       "generating": "生成最终结果...",
       "completed": "处理完成！",
@@ -121,6 +123,7 @@
         "r1": "第1轮",
         "r2": "第2轮",
         "r3": "第3轮",
+        "roundN": "第{n}轮",
         "detect": "检测",
         "done": "完成"
       },

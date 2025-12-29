@@ -52,6 +52,25 @@ interface ProcessingResult {
   provider: string;
 }
 
+// 进度回调类型
+export type ProgressStage =
+  | 'analyzing'      // 分析文本
+  | 'round'          // 改写轮次
+  | 'detecting'      // AI 检测
+  | 'completed';     // 完成
+
+export interface ProgressInfo {
+  stage: ProgressStage;
+  progress: number;         // 0-100
+  message: string;
+  round?: number;           // 当前轮次
+  totalRounds?: number;     // 总轮次
+  chunk?: number;           // 当前分段（长文）
+  totalChunks?: number;     // 总分段数（长文）
+}
+
+export type ProgressCallback = (info: ProgressInfo) => void;
+
 export class LLMClient {
   private provider: LLMProvider;
   private apiKey: string;
@@ -125,18 +144,28 @@ export class LLMClient {
     targetScore?: number;
     style?: string;
     model?: string; // 允许单次请求覆盖模型
+    onProgress?: ProgressCallback;
   } = {}): Promise<ProcessingResult> {
     const rounds = options.rounds || 3;
     const targetScore = options.targetScore || 0.1;
     const style = options.style || 'casual';
     const model = options.model || this.model;
+    const onProgress = options.onProgress;
+
+    // 报告开始分析
+    onProgress?.({
+      stage: 'analyzing',
+      progress: 5,
+      message: '正在分析文本...',
+      totalRounds: rounds,
+    });
 
     // 长文分段处理
     if (text.length > LLMClient.CHUNK_THRESHOLD) {
-      return this.processLongText(text, { rounds, targetScore, style, model });
+      return this.processLongText(text, { rounds, targetScore, style, model, onProgress });
     }
 
-    return this.processShortText(text, { rounds, targetScore, style, model });
+    return this.processShortText(text, { rounds, targetScore, style, model, onProgress });
   }
 
   // 自适应轮次策略 - 根据检测结果选择最有效的下一轮策略
@@ -157,8 +186,9 @@ export class LLMClient {
     targetScore: number;
     style: string;
     model: string;
+    onProgress?: ProgressCallback;
   }): Promise<ProcessingResult> {
-    const { rounds, targetScore, style, model } = options;
+    const { rounds, targetScore, style, model, onProgress } = options;
 
     let currentText = text;
     const roundScores: number[][] = [];
@@ -167,14 +197,38 @@ export class LLMClient {
     // 第一轮始终从 AI 模式消除开始
     let nextRound = 1;
 
+    // 计算进度：分析(5%) + 每轮(改写+检测) + 最终检测(5%)
+    // 每轮占比 = (100 - 10) / rounds
+    const progressPerRound = (100 - 10) / rounds;
+
     for (let i = 0; i < rounds; i++) {
       const instruction = this.getHumanizationInstruction(nextRound, style, targetScore, false, currentText);
       usedRounds.push(nextRound);
+
+      // 报告改写进度
+      const roundStartProgress = 5 + i * progressPerRound;
+      onProgress?.({
+        stage: 'round',
+        progress: Math.round(roundStartProgress),
+        message: `第 ${i + 1} 轮改写中...`,
+        round: i + 1,
+        totalRounds: rounds,
+      });
 
       console.log(`[LLMClient] 执行第 ${i + 1}/${rounds} 轮处理（策略 #${nextRound}）`);
 
       // 使用带重试机制的 API 调用
       currentText = await this.chatWithRetry(currentText, instruction, model, false);
+
+      // 报告检测进度
+      const detectProgress = roundStartProgress + progressPerRound * 0.7;
+      onProgress?.({
+        stage: 'detecting',
+        progress: Math.round(detectProgress),
+        message: `第 ${i + 1} 轮检测中...`,
+        round: i + 1,
+        totalRounds: rounds,
+      });
 
       const scores = await detectorClient.detectAll(currentText);
       roundScores.push([scores.zerogpt, scores.gptzero, scores.copyleaks]);
@@ -193,7 +247,23 @@ export class LLMClient {
       }
     }
 
+    // 最终检测
+    onProgress?.({
+      stage: 'detecting',
+      progress: 95,
+      message: '最终检测中...',
+      totalRounds: rounds,
+    });
+
     const finalScores = await detectorClient.detectAll(currentText);
+
+    // 完成
+    onProgress?.({
+      stage: 'completed',
+      progress: 100,
+      message: '处理完成',
+      totalRounds: rounds,
+    });
 
     return {
       processedText: currentText,
@@ -243,8 +313,9 @@ export class LLMClient {
     targetScore: number;
     style: string;
     model: string;
+    onProgress?: ProgressCallback;
   }): Promise<ProcessingResult> {
-    const { rounds, targetScore, style, model } = options;
+    const { rounds, targetScore, style, model, onProgress } = options;
 
     // 按段落边界分割文本
     const chunks = this.splitTextIntoChunks(text);
@@ -252,6 +323,10 @@ export class LLMClient {
 
     const processedChunks: string[] = [];
     const allRoundScores: number[][] = [];
+
+    // 计算进度：分析(5%) + 每段每轮处理 + 最终检测(5%)
+    const totalSteps = chunks.length * rounds;
+    const progressPerStep = (100 - 10) / totalSteps;
 
     // 逐段处理（带重试机制）
     for (let i = 0; i < chunks.length; i++) {
@@ -261,6 +336,20 @@ export class LLMClient {
       let currentChunk = chunk;
 
       for (let round = 1; round <= rounds; round++) {
+        const stepIndex = i * rounds + (round - 1);
+        const progress = 5 + stepIndex * progressPerStep;
+
+        // 报告进度
+        onProgress?.({
+          stage: 'round',
+          progress: Math.round(progress),
+          message: `第 ${i + 1} 段，第 ${round} 轮改写中...`,
+          round,
+          totalRounds: rounds,
+          chunk: i + 1,
+          totalChunks: chunks.length,
+        });
+
         const instruction = this.getHumanizationInstruction(round, style, targetScore, true, currentChunk);
         // 长文本分段使用带重试机制的 API 调用
         currentChunk = await this.chatWithRetry(currentChunk, instruction, model, true);
@@ -272,9 +361,27 @@ export class LLMClient {
     // 合并处理后的段落
     const processedText = processedChunks.join('\n\n');
 
+    // 最终检测
+    onProgress?.({
+      stage: 'detecting',
+      progress: 95,
+      message: '最终检测中...',
+      totalRounds: rounds,
+      totalChunks: chunks.length,
+    });
+
     // 获取最终检测分数
     const finalScores = await detectorClient.detectAll(processedText);
     allRoundScores.push([finalScores.zerogpt, finalScores.gptzero, finalScores.copyleaks]);
+
+    // 完成
+    onProgress?.({
+      stage: 'completed',
+      progress: 100,
+      message: '处理完成',
+      totalRounds: rounds,
+      totalChunks: chunks.length,
+    });
 
     return {
       processedText,
