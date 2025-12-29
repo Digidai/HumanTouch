@@ -16,7 +16,7 @@
 
 [English](#features) | [中文文档](#功能特性)
 
-[Documentation](docs/) · [API Guide](docs/api/usage-guide.md) · [Report Bug](https://github.com/Digidai/HumanTouch/issues) · [Request Feature](https://github.com/Digidai/HumanTouch/issues)
+[Documentation](docs/) · [API Guide](docs/api/usage-guide.md) · [Agent Guide](agent.md) · [Report Bug](https://github.com/Digidai/HumanTouch/issues)
 
 </div>
 
@@ -90,7 +90,8 @@ Visit the deployed app and start immediately:
 The web UI supports:
 - Processing without any configuration (uses server's default model)
 - Custom OpenRouter API key + model selection for more control
-- Real-time progress tracking and detection score display
+- Real-time SSE progress tracking (actual backend progress, not simulated)
+- Detection score display after processing
 
 ### One-Click Deploy
 
@@ -327,11 +328,11 @@ If multiple providers are configured:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/process` | POST | Synchronous text processing |
+| `/api/v1/process/stream` | POST | SSE streaming with real-time progress |
 | `/api/v1/validate` | POST | AI detection validation only |
 | `/api/v1/batch` | POST | Batch processing (max 10) |
-| `/api/v1/async` | POST | Create async task |
-| `/api/v1/status/:id` | GET | Get task status |
-| `/api/v1/tasks` | GET | List all tasks |
+
+> **Note**: Async task endpoints (`/api/v1/async`, `/api/v1/status/:id`, `/api/v1/tasks`) exist but are unreliable in serverless environments due to in-memory storage. Use SSE streaming for real-time progress instead.
 
 ### POST /api/v1/process
 
@@ -351,9 +352,20 @@ If multiple providers are configured:
 | `text` | string | ✅ | Text to analyze |
 | `detectors` | array | ❌ | `["zerogpt", "gptzero", "copyleaks"]` |
 
-### POST /api/v1/async
+### POST /api/v1/process/stream (SSE)
 
-`options.notify_url` must be a public `http/https` URL; local/private addresses are rejected.
+Same parameters as `/api/v1/process`, but returns Server-Sent Events for real-time progress:
+
+```
+event: progress
+data: {"stage":"round","progress":35,"message":"Round 2 rewriting...","round":2,"totalRounds":3}
+
+event: progress
+data: {"stage":"detecting","progress":75,"message":"Running AI detection..."}
+
+event: result
+data: {"processed_text":"...","detection_scores":{...},"processing_time":12.5}
+```
 
 ---
 
@@ -549,8 +561,9 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 - 自适应策略系统，根据检测器分数动态调整处理方向
 - 4 种风格差异化处理（轻松随意、学术正式、专业商务、创意写作）
 - 长文本智能分段处理，支持 30,000 字符
+- SSE 实时进度展示（真实后端进度，非模拟）
 
-详细技术文档请参阅 [人性化策略详解](docs/humanization-strategy.md)。
+详细技术文档请参阅 [人性化策略详解](agent.md)。
 
 ---
 
