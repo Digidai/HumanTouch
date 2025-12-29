@@ -77,6 +77,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <html
       lang={locale === "zh" ? "zh-CN" : "en"}
       className={`${crimsonPro.variable} ${outfit.variable} ${notoSansSC.variable}`}
+      suppressHydrationWarning
     >
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>

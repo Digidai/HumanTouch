@@ -207,5 +207,11 @@
     "switch": "语言",
     "zh": "中文",
     "en": "English"
+  },
+  "errors": {
+    "networkError": "无法连接到服务器",
+    "networkErrorDetails": "请检查网络连接后重试",
+    "requestFailed": "请求失败",
+    "unknownError": "发生未知错误"
   }
 }

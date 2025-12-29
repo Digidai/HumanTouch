@@ -207,5 +207,11 @@
     "switch": "Language",
     "zh": "中文",
     "en": "English"
+  },
+  "errors": {
+    "networkError": "Unable to connect to server",
+    "networkErrorDetails": "Please check your network connection and try again",
+    "requestFailed": "Request failed",
+    "unknownError": "An unknown error occurred"
   }
 }

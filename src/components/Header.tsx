@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Sparkles, Settings, X, Check, Key, Cpu, Globe } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, Settings, X, Check, Key, Cpu, Globe, ChevronDown } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/routing';
 import { useLlmSettings } from '@/lib/api-client';
@@ -14,8 +14,21 @@ export function Header() {
   const pathname = usePathname();
   const { apiKey, model, saveSettings, clearSettings, isConfigured } = useLlmSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempModel, setTempModel] = useState('');
+  const langMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close language menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLangMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleOpenSettings = () => {
     setTempApiKey(apiKey || '');
@@ -38,6 +51,7 @@ export function Header() {
   };
 
   const switchLocale = (newLocale: Locale) => {
+    setShowLangMenu(false);
     router.replace(pathname, { locale: newLocale });
   };
 
@@ -93,28 +107,36 @@ export function Header() {
             </button>
 
             {/* Language Switcher */}
-            <div className="relative group">
+            <div className="relative" ref={langMenuRef}>
               <button
-                className="flex items-center gap-2 px-3 py-2 rounded-full border border-[var(--stone-200)] bg-white/50 hover:border-[var(--stone-300)] transition-all duration-200"
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all duration-200 ${
+                  showLangMenu
+                    ? 'border-[var(--coral-300)] bg-[var(--coral-50)]'
+                    : 'border-[var(--stone-200)] bg-white/50 hover:border-[var(--stone-300)]'
+                }`}
               >
                 <Globe className="w-4 h-4 text-[var(--stone-500)]" />
                 <span className="text-sm font-medium text-[var(--stone-600)]">
                   {localeNames[locale]}
                 </span>
+                <ChevronDown className={`w-3 h-3 text-[var(--stone-400)] transition-transform duration-200 ${showLangMenu ? 'rotate-180' : ''}`} />
               </button>
-              <div className="absolute right-0 mt-2 py-2 w-32 bg-white rounded-xl shadow-lg border border-[var(--stone-100)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                {locales.map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => switchLocale(l)}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--stone-50)] transition-colors ${
-                      l === locale ? 'text-[var(--coral-600)] font-medium' : 'text-[var(--stone-600)]'
-                    }`}
-                  >
-                    {localeNames[l]}
-                  </button>
-                ))}
-              </div>
+              {showLangMenu && (
+                <div className="absolute right-0 mt-2 py-2 w-32 bg-white rounded-xl shadow-lg border border-[var(--stone-100)] animate-fade-in">
+                  {locales.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => switchLocale(l)}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--stone-50)] transition-colors ${
+                        l === locale ? 'text-[var(--coral-600)] font-medium' : 'text-[var(--stone-600)]'
+                      }`}
+                    >
+                      {localeNames[l]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -376,19 +376,19 @@ export function TextProcessor() {
                   <div className="card stat-card">
                     <p className="stat-label">ZeroGPT</p>
                     <p className="stat-value tabular-nums">
-                      {((result as ProcessResponse).detection_scores?.zerogpt * 100).toFixed(1)}%
+                      {(((result as ProcessResponse).detection_scores?.zerogpt ?? 0) * 100).toFixed(1)}%
                     </p>
                   </div>
                   <div className="card stat-card">
                     <p className="stat-label">GPTZero</p>
                     <p className="stat-value tabular-nums">
-                      {((result as ProcessResponse).detection_scores?.gptzero * 100).toFixed(1)}%
+                      {(((result as ProcessResponse).detection_scores?.gptzero ?? 0) * 100).toFixed(1)}%
                     </p>
                   </div>
                   <div className="card stat-card">
                     <p className="stat-label">Copyleaks</p>
                     <p className="stat-value tabular-nums">
-                      {((result as ProcessResponse).detection_scores?.copyleaks * 100).toFixed(1)}%
+                      {(((result as ProcessResponse).detection_scores?.copyleaks ?? 0) * 100).toFixed(1)}%
                     </p>
                   </div>
                   <div className="card stat-card !bg-gradient-to-br !from-[var(--coral-50)] !to-[var(--coral-100)]">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -28,12 +28,19 @@ interface Task {
 
 export function TaskMonitor() {
   const t = useTranslations('monitor');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const { getTasks, getTaskStatus, loading, error } = useApi();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [polling, setPolling] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const selectedTaskRef = useRef<Task | null>(null);
+
+  // Keep ref in sync with state for use in interval callback
+  useEffect(() => {
+    selectedTaskRef.current = selectedTask;
+  }, [selectedTask]);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -44,58 +51,53 @@ export function TaskMonitor() {
       }));
       setTasks(normalized);
     } catch (err) {
-      console.error('获取任务列表失败:', err);
+      console.error('Failed to fetch tasks:', err);
     }
   }, [getTasks]);
 
   const refreshTaskStatus = useCallback(async (taskId: string) => {
     try {
       const response = await getTaskStatus(taskId);
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { 
-          ...task, 
-          ...response,
-          id: response.task_id || taskId,
-          status: response.status as Task['status']
-        } : task
+      const updatedTask = {
+        ...response,
+        id: response.task_id || taskId,
+        status: response.status as Task['status']
+      };
+
+      setTasks(prev => prev.map(task =>
+        task.id === taskId ? { ...task, ...updatedTask } : task
       ));
-      
-      if (selectedTask?.id === taskId) {
-        setSelectedTask({
-          ...response,
-          id: response.task_id,
-          status: response.status as Task['status']
-        });
+
+      // Update selectedTask if it matches
+      if (selectedTaskRef.current?.id === taskId) {
+        setSelectedTask(updatedTask);
       }
     } catch (err) {
-      console.error('获取任务状态失败:', err);
+      console.error('Failed to fetch task status:', err);
     }
-  }, [getTaskStatus, selectedTask?.id]);
+  }, [getTaskStatus]);
 
-  const startPolling = useCallback(() => {
-    if (polling) return;
-    
-    setPolling(true);
-    const interval = setInterval(() => {
+  // Initial fetch and polling setup
+  useEffect(() => {
+    fetchTasks();
+
+    intervalRef.current = setInterval(() => {
       fetchTasks();
-      
-      // 如果选中了正在处理的任务，单独刷新
-      if (selectedTask && ['pending', 'processing'].includes(selectedTask.status)) {
-        refreshTaskStatus(selectedTask.id);
+
+      // Refresh selected task if it's still processing
+      const currentTask = selectedTaskRef.current;
+      if (currentTask && ['pending', 'processing'].includes(currentTask.status)) {
+        refreshTaskStatus(currentTask.id);
       }
     }, 3000);
 
     return () => {
-      clearInterval(interval);
-      setPolling(false);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [fetchTasks, refreshTaskStatus, selectedTask, polling]);
-
-  useEffect(() => {
-    fetchTasks();
-    const stopPolling = startPolling();
-    return stopPolling;
-  }, [fetchTasks, startPolling]);
+  }, [fetchTasks, refreshTaskStatus]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -189,7 +191,7 @@ export function TaskMonitor() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
                           {getStatusIcon(task.status)}
-                          <span className="ml-1">{task.status}</span>
+                          <span className="ml-1">{tCommon(task.status)}</span>
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -256,7 +258,7 @@ export function TaskMonitor() {
                     <h4 className="font-medium text-gray-700">{t('detail.status')}</h4>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTask.status)}`}>
                       {getStatusIcon(selectedTask.status)}
-                      <span className="ml-1">{selectedTask.status}</span>
+                      <span className="ml-1">{tCommon(selectedTask.status)}</span>
                     </span>
                   </div>
                   <div>
