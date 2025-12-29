@@ -302,23 +302,27 @@ export function useStreamProcess() {
           if (line.startsWith('event: ')) {
             eventType = line.slice(7);
           } else if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.slice(6));
+            try {
+              const data = JSON.parse(line.slice(6));
 
-            if (eventType === 'progress') {
-              setProgress(data);
-              options.onProgress?.(data);
-            } else if (eventType === 'result') {
-              result = data;
-              options.onComplete?.(data);
-            } else if (eventType === 'error') {
-              const apiError: ApiError = {
-                code: data.code,
-                message: data.message,
-                details: data.details,
-              };
-              setError(apiError);
-              options.onError?.(apiError);
-              throw apiError;
+              if (eventType === 'progress') {
+                setProgress(data);
+                options.onProgress?.(data);
+              } else if (eventType === 'result') {
+                result = data;
+                options.onComplete?.(data);
+              } else if (eventType === 'error') {
+                const apiError: ApiError = {
+                  code: data.code,
+                  message: data.message,
+                  details: data.details,
+                };
+                setError(apiError);
+                options.onError?.(apiError);
+                throw apiError;
+              }
+            } catch (parseError) {
+              console.error('SSE parse error:', parseError, 'line:', line);
             }
           }
         }
@@ -333,10 +337,17 @@ export function useStreamProcess() {
       let apiError: ApiError;
       if (err && typeof err === 'object' && 'code' in (err as ApiError)) {
         apiError = err as ApiError;
+      } else if (err instanceof TypeError && (err.message.includes('fetch') || err.message.includes('Failed to fetch'))) {
+        apiError = {
+          code: 'NETWORK_ERROR',
+          message: '无法连接到服务器',
+          details: '请检查网络连接后重试',
+        };
       } else {
         apiError = {
           code: 'REQUEST_ERROR',
           message: err instanceof Error ? err.message : '请求失败',
+          details: err instanceof Error ? err.message : undefined,
         };
       }
 
