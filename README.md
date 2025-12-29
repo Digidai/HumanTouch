@@ -16,7 +16,7 @@
 
 [English](#features) | [中文文档](#功能特性)
 
-[Documentation](docs/) · [API Guide](docs/api/usage-guide.md) · [Agent Guide](agent.md) · [Report Bug](https://github.com/Digidai/HumanTouch/issues)
+[Documentation](docs/) · [API Guide](docs/api/usage-guide.md) · [Humanization Strategy](docs/humanization-strategy.md) · [Report Bug](https://github.com/Digidai/HumanTouch/issues)
 
 </div>
 
@@ -563,7 +563,7 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 - 长文本智能分段处理，支持 30,000 字符
 - SSE 实时进度展示（真实后端进度，非模拟）
 
-详细技术文档请参阅 [人性化策略详解](agent.md)。
+详细技术文档请参阅 [人性化策略详解](docs/humanization-strategy.md)。
 
 ---
 
