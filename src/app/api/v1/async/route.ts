@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { publicTaskQueue, privateTaskQueue } from '@/lib/taskqueue';
+import { publicTaskQueue, privateTaskQueue, validateWebhookUrl } from '@/lib/taskqueue';
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { AsyncTaskRequest, ApiResponse } from '@/types/api';
@@ -65,6 +65,30 @@ export async function POST(request: NextRequest) {
     const style = body.options?.style || 'casual';
     const webhook_url = body.options?.notify_url;
     const llmApiKey = body.api_key || (body as { key?: string }).key;
+    let normalizedWebhookUrl: string | undefined;
+
+    if (webhook_url) {
+      const validation = validateWebhookUrl(webhook_url);
+      if (!validation.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'INVALID_WEBHOOK_URL',
+              message: 'Webhook URL 无效',
+              details: validation.reason || 'Webhook URL 格式无效',
+            },
+            meta: {
+              request_id: requestId,
+              timestamp: new Date().toISOString(),
+              api_version: 'v1',
+            },
+          } as ApiResponse,
+          { status: 400 }
+        );
+      }
+      normalizedWebhookUrl = validation.normalized;
+    }
 
     // 私有模式必须提供 api_key
     if (accessMode === 'private' && !llmApiKey) {
@@ -103,7 +127,7 @@ export async function POST(request: NextRequest) {
         target_score: body.options?.target_score,
         model,
       },
-      webhook_url,
+      normalizedWebhookUrl,
       useCustomLlm ? llmApiKey : undefined
     );
 
@@ -113,7 +137,7 @@ export async function POST(request: NextRequest) {
         task_id: taskId,
         status: 'pending',
         estimated_time: estimatedTime,
-        webhook_url: webhook_url || null,
+        webhook_url: normalizedWebhookUrl || null,
       },
       meta: {
         request_id: requestId,

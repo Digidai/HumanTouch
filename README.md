@@ -94,9 +94,9 @@ The web UI supports:
 
 ### One-Click Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Digidai/HumanTouch&env=OPENROUTER_API_KEY,JWT_SECRET,ALLOWED_API_KEYS)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Digidai/HumanTouch&env=OPENROUTER_API_KEY,JWT_SECRET,API_KEY_SECRET,ALLOWED_API_KEYS)
 
-`OPENROUTER_API_KEY` (or custom provider) powers the public web UI. `ALLOWED_API_KEYS` controls API access.
+`OPENROUTER_API_KEY` (or custom provider) powers the public web UI. `API_KEY_SECRET` signs access keys returned by `/api/v1/auth`. `ALLOWED_API_KEYS` is an optional static allowlist.
 
 ### Local Development
 
@@ -123,10 +123,35 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 ## 📖 API Usage
 
 API calls require two keys:
-- **Access key** in `Authorization: Bearer hk_...` (configured via `ALLOWED_API_KEYS`)
+- **Access key** in `Authorization: Bearer hk_...` (from `/api/v1/auth` or `ALLOWED_API_KEYS`)
 - **LLM key** in request body `api_key` (OpenRouter/OpenAI-compatible)
 
 Public web requests do **not** require these keys, but only use the default model.
+
+### Get Access Key
+
+Generate an access key (signed with `API_KEY_SECRET` in production):
+
+```bash
+curl -X POST https://your-domain.com/api/v1/auth \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@example.com",
+    "password": "your-password",
+    "name": "Your Name"
+  }'
+```
+
+You can also login to retrieve an access key:
+
+```bash
+curl -X PATCH https://your-domain.com/api/v1/auth \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@example.com",
+    "password": "your-password"
+  }'
+```
 
 ### Basic Request
 
@@ -278,8 +303,11 @@ If multiple providers are configured:
 | `CUSTOM_LLM_MODEL` | ❌ | `gpt-4` | Default model |
 | **Authentication** |
 | `JWT_SECRET` | Production | - | JWT signing secret |
-| `ALLOWED_API_KEYS` | Production | - | Comma-separated API access keys (Bearer) |
+| `API_KEY_SECRET` | Production | - | API key signing secret (falls back to `JWT_SECRET` if unset) |
+| `ALLOWED_API_KEYS` | ❌ | - | Optional comma-separated API access keys (Bearer) |
 | `API_KEY_PREFIX` | ❌ | `hk_` | API key prefix |
+| `API_KEY_ISSUER` | ❌ | `humantouch` | API key issuer |
+| `API_KEY_AUDIENCE` | ❌ | `api_key` | API key audience |
 | **Detection** |
 | `DETECTOR_MODE` | ❌ | `mock` | `mock` or `strict` |
 | `ZEROGPT_API_KEY` | ❌ | - | ZeroGPT API key |
@@ -322,6 +350,10 @@ If multiple providers are configured:
 |-----------|------|----------|-------------|
 | `text` | string | ✅ | Text to analyze |
 | `detectors` | array | ❌ | `["zerogpt", "gptzero", "copyleaks"]` |
+
+### POST /api/v1/async
+
+`options.notify_url` must be a public `http/https` URL; local/private addresses are rejected.
 
 ---
 

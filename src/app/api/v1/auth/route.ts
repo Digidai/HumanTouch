@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { authManager } from '@/lib/auth';
 import { ApiResponse } from '@/types/api';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
@@ -13,6 +14,8 @@ interface LoginRequest {
   email: string;
   password: string;
 }
+
+const generateUserId = () => randomBytes(12).toString('hex');
 
 // 用户注册
 export async function POST(request: NextRequest) {
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 模拟用户创建逻辑
-    const userId = Math.random().toString(36).substring(2, 15);
+    const userId = generateUserId();
     const token = authManager.generateJwtToken({
       id: userId,
       email,
@@ -173,7 +176,7 @@ export async function PATCH(request: NextRequest) {
 
     // 模拟用户验证逻辑
     // 实际项目中应该查询数据库验证密码
-    const userId = 'demo-user-' + Math.random().toString(36).substring(2, 8);
+    const userId = `demo-user-${generateUserId().slice(0, 8)}`;
     const token = authManager.generateJwtToken({
       id: userId,
       email,

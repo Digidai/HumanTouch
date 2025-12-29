@@ -61,7 +61,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const detectors = body.detectors || ['zerogpt', 'gptzero', 'copyleaks'];
+    const allowedDetectors = ['zerogpt', 'gptzero', 'copyleaks'] as const;
+    const detectors = (body.detectors && body.detectors.length > 0 ? body.detectors : allowedDetectors)
+      .filter(detector => allowedDetectors.includes(detector));
+
+    if (detectors.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INVALID_PARAMETERS',
+            message: '检测器列表无效',
+            details: '请至少选择一个检测器',
+          },
+          meta: {
+            request_id: requestId,
+            timestamp: new Date().toISOString(),
+            api_version: 'v1',
+          },
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
     
     // 检测文本
     const detectionScores: { [key: string]: number } = {};
@@ -79,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 计算总体评分
-    const summary = await detectorClient.getOverallScore(detectionScores as { zerogpt: number; gptzero: number; copyleaks: number });
+    const summary = await detectorClient.getOverallScore(detectionScores);
     
     const processingTime = (Date.now() - startTime) / 1000;
 
