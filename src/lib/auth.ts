@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { getCorsHeaders } from './cors';
 
 export interface AuthUser {
   id: string;
@@ -28,14 +29,21 @@ export class AuthManager {
   constructor() {
     this.isDev = process.env.NODE_ENV !== 'production';
     const secret = process.env.JWT_SECRET;
+
     if (!secret) {
       if (this.isDev) {
-        console.warn('[AuthManager] JWT_SECRET is not set. Using insecure development fallback. DO NOT use this in production.');
-        this.jwtSecret = 'dev-only-insecure-secret-change-this';
+        // 开发环境生成随机密钥，每次重启不同，避免硬编码安全风险
+        const devSecret = randomBytes(32).toString('hex');
+        console.warn('[AuthManager] JWT_SECRET not set. Generated random dev secret (will change on restart).');
+        this.jwtSecret = devSecret;
       } else {
         throw new Error('[AuthManager] JWT_SECRET must be set in production environment');
       }
     } else {
+      // 验证密钥长度
+      if (secret.length < 32) {
+        console.warn('[AuthManager] JWT_SECRET is shorter than 32 characters. Consider using a stronger secret.');
+      }
       this.jwtSecret = secret;
     }
 
@@ -161,11 +169,7 @@ export function extractAuthToken(request: NextRequest): string | null {
   return parts[1];
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-};
+const corsHeaders = getCorsHeaders();
 
 export type AccessMode = 'public' | 'private';
 

@@ -96,7 +96,27 @@ export class TaskQueue {
   private processing: Set<string> = new Set();
   private maxConcurrent: number = 3;
   private cache: Map<string, { result: ProcessResponse; timestamp: number }> = new Map();
-  private static readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
+  private static readonly CACHE_TTL = 30 * 60 * 1000; // 30分钟缓存
+  private static readonly MAX_TASKS = 1000; // 最大任务数
+  private static readonly MAX_CACHE = 500; // 最大缓存数
+  private static readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10分钟清理一次
+  private cleanupTimer: NodeJS.Timeout | null = null;
+
+  constructor() {
+    // 启动定时清理
+    this.startAutoCleanup();
+  }
+
+  private startAutoCleanup(): void {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup(60 * 60 * 1000); // 清理1小时前的任务
+    }, TaskQueue.CLEANUP_INTERVAL);
+    // 允许进程退出
+    if (this.cleanupTimer.unref) {
+      this.cleanupTimer.unref();
+    }
+  }
 
   addTask(
     text: string,
@@ -104,6 +124,15 @@ export class TaskQueue {
     webhook_url?: string,
     llmApiKey?: string
   ): string {
+    // 容量检查：超过限制时清理旧任务
+    if (this.tasks.size >= TaskQueue.MAX_TASKS) {
+      this.cleanup(30 * 60 * 1000); // 清理30分钟前的已完成任务
+      // 如果仍然超限，强制清理最旧的已完成任务
+      if (this.tasks.size >= TaskQueue.MAX_TASKS) {
+        this.forceCleanupOldest(Math.floor(TaskQueue.MAX_TASKS * 0.2));
+      }
+    }
+
     const taskId = this.generateTaskId();
     const task: Task = {
       id: taskId,
@@ -115,10 +144,20 @@ export class TaskQueue {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
+
     this.tasks.set(taskId, task);
     this.processNext();
     return taskId;
+  }
+
+  private forceCleanupOldest(count: number): void {
+    const completedTasks = Array.from(this.tasks.entries())
+      .filter(([, task]) => task.status === 'completed' || task.status === 'failed')
+      .sort((a, b) => new Date(a[1].created_at).getTime() - new Date(b[1].created_at).getTime());
+
+    for (let i = 0; i < Math.min(count, completedTasks.length); i++) {
+      this.tasks.delete(completedTasks[i][0]);
+    }
   }
 
   getTask(taskId: string): Task | undefined {
@@ -155,11 +194,25 @@ export class TaskQueue {
   }
 
   setCachedResult(text: string, options: Task['options'], result: ProcessResponse, llmApiKey?: string): void {
+    // 缓存容量检查
+    if (this.cache.size >= TaskQueue.MAX_CACHE) {
+      this.cleanupOldestCache(Math.floor(TaskQueue.MAX_CACHE * 0.2));
+    }
+
     const cacheKey = this.generateCacheKey(text, options, llmApiKey);
     this.cache.set(cacheKey, {
       result,
       timestamp: Date.now()
     });
+  }
+
+  private cleanupOldestCache(count: number): void {
+    const entries = Array.from(this.cache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+    for (let i = 0; i < Math.min(count, entries.length); i++) {
+      this.cache.delete(entries[i][0]);
+    }
   }
 
   private async processNext(): Promise<void> {

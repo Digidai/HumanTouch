@@ -40,7 +40,10 @@
     "deploy:cf": "wrangler deploy",
     "dev:cf": "wrangler dev",
     "cf:secret": "wrangler secret put",
-    "test": "node test-api.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:api": "node test-api.js",
     "test:async": "node test-async.js",
     "clean": "rm -rf .next node_modules",
     "prepare": "echo 'Ready to develop!'"
@@ -58,6 +61,8 @@
     "swr": "^2.2.5"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
+    "vitest": "^2.1.8",
     "@cloudflare/workers-types": "^4.20241218.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",

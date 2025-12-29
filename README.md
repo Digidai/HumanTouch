@@ -303,12 +303,15 @@ If multiple providers are configured:
 | `CUSTOM_LLM_BASE_URL` | ✅* | - | Custom API base URL (public web UI default model) |
 | `CUSTOM_LLM_MODEL` | ❌ | `gpt-4` | Default model |
 | **Authentication** |
-| `JWT_SECRET` | Production | - | JWT signing secret |
+| `JWT_SECRET` | Production | - | JWT signing secret (32+ chars recommended) |
 | `API_KEY_SECRET` | Production | - | API key signing secret (falls back to `JWT_SECRET` if unset) |
 | `ALLOWED_API_KEYS` | ❌ | - | Optional comma-separated API access keys (Bearer) |
 | `API_KEY_PREFIX` | ❌ | `hk_` | API key prefix |
 | `API_KEY_ISSUER` | ❌ | `humantouch` | API key issuer |
 | `API_KEY_AUDIENCE` | ❌ | `api_key` | API key audience |
+| **Security** |
+| `CORS_ALLOWED_ORIGINS` | Production | `*` (dev) | Comma-separated allowed origins (e.g., `https://example.com,https://app.example.com`) |
+| `WEBHOOK_SECRET` | ❌ | - | HMAC secret for webhook signatures |
 | **Detection** |
 | `DETECTOR_MODE` | ❌ | `mock` | `mock` or `strict` |
 | `ZEROGPT_API_KEY` | ❌ | - | ZeroGPT API key |
@@ -316,8 +319,11 @@ If multiple providers are configured:
 | `COPYLEAKS_API_KEY` | ❌ | - | Copyleaks API key |
 | **General** |
 | `MAX_TEXT_LENGTH` | ❌ | `30000` | Max characters (auto-chunked for long text) |
-| `RATE_LIMIT_REQUESTS_PER_MINUTE` | ❌ | `100` | Rate limit |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | ❌ | `100` | Rate limit per IP per minute |
 | `SITE_URL` | ❌ | - | Your site URL |
+| **Logging** |
+| `LOG_LEVEL` | ❌ | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `LOG_FORMAT` | ❌ | `json` (prod) | Log format: `json` or `text` |
 
 *At least one LLM provider must be configured.
 

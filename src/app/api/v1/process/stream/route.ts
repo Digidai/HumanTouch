@@ -3,17 +3,11 @@ import { LLMClient, ProgressInfo } from '@/lib/llm-client';
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse } from '@/types/api';
+import { corsHeaders } from '@/lib/cors';
 
 // Vercel Serverless Function 配置
 export const maxDuration = 300; // 5分钟超时
 export const dynamic = 'force-dynamic';
-
-// CORS 响应头
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-};
 
 // SSE 事件类型
 interface SSEEvent {

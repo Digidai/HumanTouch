@@ -16,6 +16,9 @@ interface RateLimitStore {
 export class RateLimiter {
   private store: RateLimitStore = {};
   private config: RateLimitConfig;
+  private static readonly MAX_ENTRIES = 10000; // 最大存储条目数
+  private static readonly CLEANUP_INTERVAL = 5 * 60 * 1000; // 5分钟清理一次
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(config: RateLimitConfig) {
     this.config = Object.assign({
@@ -28,15 +31,35 @@ export class RateLimiter {
         return ip;
       }
     }, config);
+
+    // 启动定时清理
+    this.startAutoCleanup();
+  }
+
+  private startAutoCleanup(): void {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup();
+    }, RateLimiter.CLEANUP_INTERVAL);
+    // 允许进程退出
+    if (this.cleanupTimer.unref) {
+      this.cleanupTimer.unref();
+    }
   }
 
   async check(request: NextRequest): Promise<{ allowed: boolean; resetTime: number; limit: number; remaining: number }> {
     const key = this.config.keyGenerator!(request);
     const now = Date.now();
-    
+
     // Clean up expired entries
     this.cleanup();
-    
+
+    // 容量检查：超过限制时强制清理
+    const entryCount = Object.keys(this.store).length;
+    if (entryCount >= RateLimiter.MAX_ENTRIES) {
+      this.forceCleanupOldest(Math.floor(RateLimiter.MAX_ENTRIES * 0.2));
+    }
+
     if (!this.store[key]) {
       this.store[key] = {
         count: 1,
@@ -68,6 +91,23 @@ export class RateLimiter {
         delete this.store[key];
       }
     }
+  }
+
+  private forceCleanupOldest(count: number): void {
+    // 按重置时间排序，清理即将过期的条目
+    const entries = Object.entries(this.store)
+      .sort((a, b) => a[1].resetTime - b[1].resetTime);
+
+    for (let i = 0; i < Math.min(count, entries.length); i++) {
+      delete this.store[entries[i][0]];
+    }
+  }
+
+  getStats(): { entries: number; maxEntries: number } {
+    return {
+      entries: Object.keys(this.store).length,
+      maxEntries: RateLimiter.MAX_ENTRIES,
+    };
   }
 }
 
