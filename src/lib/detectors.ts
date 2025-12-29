@@ -87,6 +87,10 @@ export class DetectorClient {
       return data.data.ai_generated_percent / 100;
     } catch (error) {
       console.error('Error calling ZeroGPT API:', error);
+      if (this.mode === 'strict') {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`ZeroGPT API error: ${message}`);
+      }
       return Math.random() * 0.3; // 模拟分数
     }
   }
@@ -121,6 +125,10 @@ export class DetectorClient {
       return data.documents[0]?.class_probabilities?.fake || 0;
     } catch (error) {
       console.error('Error calling GPTZero API:', error);
+      if (this.mode === 'strict') {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`GPTZero API error: ${message}`);
+      }
       return Math.random() * 0.3; // 模拟分数
     }
   }
@@ -152,6 +160,10 @@ export class DetectorClient {
       return data.status.ai.score;
     } catch (error) {
       console.error('Error calling Copyleaks API:', error);
+      if (this.mode === 'strict') {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Copyleaks API error: ${message}`);
+      }
       return Math.random() * 0.3; // 模拟分数
     }
   }
@@ -174,11 +186,11 @@ export class DetectorClient {
     };
   }
 
-  async getOverallScore(scores: {
+  async getOverallScore(scores: Partial<{
     zerogpt: number;
     gptzero: number;
     copyleaks: number;
-  }): Promise<{
+  }>): Promise<{
     overall_score: number;
     human_likelihood: number;
   }> {
@@ -189,10 +201,22 @@ export class DetectorClient {
       copyleaks: 0.25,
     };
 
-    const overallScore = 
-      scores.zerogpt * weights.zerogpt +
-      scores.gptzero * weights.gptzero +
-      scores.copyleaks * weights.copyleaks;
+    let weightedSum = 0;
+    let weightTotal = 0;
+
+    for (const [key, weight] of Object.entries(weights)) {
+      const score = scores[key as keyof typeof weights];
+      if (typeof score === 'number' && Number.isFinite(score)) {
+        weightedSum += score * weight;
+        weightTotal += weight;
+      }
+    }
+
+    if (weightTotal === 0) {
+      throw new Error('No valid detector scores provided');
+    }
+
+    const overallScore = weightedSum / weightTotal;
 
     return {
       overall_score: Math.round(overallScore * 100) / 100,

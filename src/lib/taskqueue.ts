@@ -1,3 +1,4 @@
+import { isIP } from 'net';
 import { ProcessResponse } from '@/types/api';
 
 export interface Task {
@@ -18,6 +19,76 @@ export interface Task {
   updated_at: string;
   started_at?: string;
   completed_at?: string;
+}
+
+const WEBHOOK_TIMEOUT_MS = 10000;
+const WEBHOOK_MAX_REDIRECTS = 3;
+
+export function validateWebhookUrl(rawUrl: string): { valid: boolean; normalized?: string; reason?: string } {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) {
+    return { valid: false, reason: 'Webhook URL 不能为空' };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { valid: false, reason: 'Webhook URL 格式无效' };
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { valid: false, reason: 'Webhook URL 仅支持 http/https' };
+  }
+
+  if (parsed.username || parsed.password) {
+    return { valid: false, reason: 'Webhook URL 不允许包含用户名或密码' };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (isPrivateHostname(hostname)) {
+    return { valid: false, reason: 'Webhook URL 不允许指向本地或内网地址' };
+  }
+
+  return { valid: true, normalized: parsed.toString() };
+}
+
+function isPrivateHostname(hostname: string): boolean {
+  if (!hostname) return true;
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true;
+
+  const ipType = isIP(hostname);
+  if (ipType === 4) return isPrivateIpv4(hostname);
+  if (ipType === 6) return isPrivateIpv6(hostname);
+  return false;
+}
+
+function isPrivateIpv4(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(part => Number.isNaN(part))) return true;
+  const [a, b] = parts;
+
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+
+  return false;
+}
+
+function isPrivateIpv6(ip: string): boolean {
+  const normalized = ip.toLowerCase();
+  if (normalized === '::1' || normalized === '::') return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
+  if (normalized.startsWith('fe80')) return true;
+  if (normalized.startsWith('::ffff:')) {
+    const mapped = normalized.replace('::ffff:', '');
+    return isPrivateIpv4(mapped);
+  }
+  return false;
 }
 
 export class TaskQueue {
@@ -196,6 +267,12 @@ export class TaskQueue {
     if (!task.webhook_url) return;
 
     try {
+      const validation = validateWebhookUrl(task.webhook_url);
+      if (!validation.valid || !validation.normalized) {
+        console.warn(`[TaskQueue] Invalid webhook URL for task ${task.id}: ${validation.reason || 'unknown reason'}`);
+        return;
+      }
+
       const secret = process.env.WEBHOOK_SECRET || process.env.JWT_SECRET;
       const payload = {
         task_id: task.id,
@@ -219,7 +296,7 @@ export class TaskQueue {
         headers['X-Humantouch-Signature'] = signature;
       }
 
-      await this.postWithRetry(task.webhook_url, body, headers);
+      await this.postWithRetry(validation.normalized, body, headers);
     } catch (error) {
       console.error(`Failed to send webhook for task ${task.id}:`, error);
     }
@@ -227,23 +304,99 @@ export class TaskQueue {
 
   private async postWithRetry(url: string, body: string, headers: Record<string, string>, retries = 2): Promise<void> {
     let attempt = 0;
+    let lastError: Error | null = null;
     while (attempt <= retries) {
       try {
-        await fetch(url, {
-          method: 'POST',
-          headers,
-          body,
-        });
-        return;
-      } catch (error) {
-        attempt += 1;
-        if (attempt > retries) {
+        const response = await this.postOnce(url, body, headers);
+
+        if (!response.ok) {
+          const error = new Error(`Webhook HTTP error: ${response.status}`);
+          (error as { retryable?: boolean }).retryable = response.status >= 500 || response.status === 429;
           throw error;
         }
+
+        return;
+      } catch (error) {
+        lastError = error as Error;
+        const retryable = this.isRetryableWebhookError(error);
+        if (!retryable || attempt === retries) {
+          throw lastError;
+        }
+        attempt += 1;
         const delay = 500 * attempt;
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
+
+    if (lastError) {
+      throw lastError;
+    }
+  }
+
+  private async postOnce(url: string, body: string, headers: Record<string, string>): Promise<Response> {
+    let currentUrl = url;
+
+    for (let redirectCount = 0; redirectCount <= WEBHOOK_MAX_REDIRECTS; redirectCount++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
+      let response: Response;
+
+      try {
+        response = await fetch(currentUrl, {
+          method: 'POST',
+          headers,
+          body,
+          signal: controller.signal,
+          redirect: 'manual',
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        if (!location) {
+          return response;
+        }
+
+        const nextUrl = new URL(location, currentUrl).toString();
+        const validation = validateWebhookUrl(nextUrl);
+        if (!validation.valid || !validation.normalized) {
+          const error = new Error(`Invalid webhook redirect URL: ${validation.reason || 'unknown reason'}`);
+          (error as { retryable?: boolean }).retryable = false;
+          throw error;
+        }
+
+        currentUrl = validation.normalized;
+        continue;
+      }
+
+      return response;
+    }
+
+    const error = new Error('Webhook redirect limit exceeded');
+    (error as { retryable?: boolean }).retryable = false;
+    throw error;
+  }
+
+  private isRetryableWebhookError(error: unknown): boolean {
+    if (error && typeof error === 'object' && 'retryable' in error) {
+      return Boolean((error as { retryable?: boolean }).retryable);
+    }
+
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      return (
+        error.name === 'AbortError' ||
+        message.includes('timeout') ||
+        message.includes('network') ||
+        message.includes('fetch failed') ||
+        message.includes('econnreset') ||
+        message.includes('socket hang up')
+      );
+    }
+
+    return false;
   }
 
   getStats() {

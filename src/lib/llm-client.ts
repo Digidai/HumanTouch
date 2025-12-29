@@ -370,7 +370,10 @@ export class LLMClient {
     return (
       error.name === 'AbortError' || // 超时
       message.includes('timeout') ||
+      message.includes('超时') ||
       message.includes('network') ||
+      message.includes('网络错误') ||
+      message.includes('无法连接') ||
       message.includes('fetch failed') ||
       message.includes('econnreset') ||
       message.includes('socket hang up') ||

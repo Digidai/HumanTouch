@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 export interface AuthUser {
   id: string;
@@ -19,6 +20,10 @@ export class AuthManager {
   private static instance: AuthManager;
   private jwtSecret: string;
   private isDev: boolean;
+  private apiKeySecret: string;
+  private apiKeyPrefix: string;
+  private apiKeyIssuer: string;
+  private apiKeyAudience: string;
 
   constructor() {
     this.isDev = process.env.NODE_ENV !== 'production';
@@ -33,6 +38,11 @@ export class AuthManager {
     } else {
       this.jwtSecret = secret;
     }
+
+    this.apiKeySecret = process.env.API_KEY_SECRET || this.jwtSecret;
+    this.apiKeyPrefix = process.env.API_KEY_PREFIX || 'hk_';
+    this.apiKeyIssuer = process.env.API_KEY_ISSUER || 'humantouch';
+    this.apiKeyAudience = process.env.API_KEY_AUDIENCE || 'api_key';
   }
 
   static getInstance(): AuthManager {
@@ -42,11 +52,25 @@ export class AuthManager {
     return AuthManager.instance;
   }
 
+  private generateApiKeyId(): string {
+    return randomBytes(16).toString('hex');
+  }
+
   generateApiKey(userId: string, permissions: string[] = ['process']): string {
-    const prefix = process.env.API_KEY_PREFIX || 'hk_';
-    const randomPart = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now().toString(36);
-    return `${prefix}${randomPart}${timestamp}`;
+    const token = jwt.sign(
+      {
+        sub: userId,
+        permissions,
+        typ: 'api_key',
+      },
+      this.apiKeySecret,
+      {
+        issuer: this.apiKeyIssuer,
+        audience: this.apiKeyAudience,
+        jwtid: this.generateApiKeyId(),
+      }
+    );
+    return `${this.apiKeyPrefix}${token}`;
   }
 
   generateJwtToken(user: AuthUser): string {
@@ -71,37 +95,57 @@ export class AuthManager {
   }
 
   validateApiKey(apiKey: string): { valid: boolean; userId?: string; permissions?: string[] } {
-    const prefix = process.env.API_KEY_PREFIX || 'hk_';
-    if (!apiKey.startsWith(prefix)) {
+    if (!apiKey.startsWith(this.apiKeyPrefix)) {
       return { valid: false };
     }
 
-    // 生产环境必须使用显式允许列表，避免任何符合前缀的 key 都通过
+    // 支持显式允许列表和签名 API Key
     const allowed = process.env.ALLOWED_API_KEYS;
 
     if (!allowed) {
       if (this.isDev) {
-        console.warn('[AuthManager] ALLOWED_API_KEYS not configured. Accepting any key with correct prefix in development.');
+        console.warn('[AuthManager] ALLOWED_API_KEYS not configured. Falling back to signed API key validation in development.');
+      }
+    } else {
+      const allowedKeys = allowed.split(',').map(k => k.trim()).filter(Boolean);
+      if (allowedKeys.includes(apiKey)) {
         return {
           valid: true,
-          userId: 'dev-user',
+          userId: 'api-key-user',
           permissions: ['process', 'validate', 'batch', 'async', 'status'],
         };
       }
-
-      return { valid: false };
     }
 
-    const allowedKeys = allowed.split(',').map(k => k.trim()).filter(Boolean);
-    if (!allowedKeys.includes(apiKey)) {
+    const token = apiKey.slice(this.apiKeyPrefix.length);
+    try {
+      const decoded = jwt.verify(token, this.apiKeySecret, {
+        issuer: this.apiKeyIssuer,
+        audience: this.apiKeyAudience,
+      }) as JwtPayload | string;
+
+      if (!decoded || typeof decoded === 'string') {
+        return { valid: false };
+      }
+
+      const payload = decoded as JwtPayload & { permissions?: string[]; typ?: string };
+      const permissions = Array.isArray(payload.permissions) ? payload.permissions : null;
+      const userId = typeof payload.sub === 'string' ? payload.sub : undefined;
+      if (!permissions || !userId || payload.typ !== 'api_key') {
+        return { valid: false };
+      }
+
+      return {
+        valid: true,
+        userId,
+        permissions,
+      };
+    } catch (error) {
+      if (this.isDev) {
+        console.warn('[AuthManager] Signed API key validation failed:', error);
+      }
       return { valid: false };
     }
-
-    return {
-      valid: true,
-      userId: 'api-key-user',
-      permissions: ['process', 'validate', 'batch', 'async', 'status'],
-    };
   }
 }
 
