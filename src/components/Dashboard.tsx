@@ -1,21 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FileText, BarChart3, Upload, Zap, Clock, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, BarChart3, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { TextProcessor } from './TextProcessor';
 import { TaskMonitor } from './TaskMonitor';
 import { BatchProcessor } from './BatchProcessor';
-import { useApi } from '@/lib/api-client';
-import type { TaskListResponse } from '@/types/api';
 
 export function Dashboard() {
   const t = useTranslations('dashboard');
   const [activeTab, setActiveTab] = useState('process');
-  const { getTasks } = useApi();
-  const [todayCount, setTodayCount] = useState(0);
-  const [avgScore, setAvgScore] = useState(0);
-  const [avgTime, setAvgTime] = useState(0);
 
   const tabs = [
     {
@@ -38,48 +32,6 @@ export function Dashboard() {
     },
   ];
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data: TaskListResponse = await getTasks({ limit: 100 });
-        const tasks = data.tasks || [];
-
-        const today = new Date();
-        const todayStr = today.toISOString().slice(0, 10);
-
-        const todayTasks = tasks.filter((t: any) =>
-          (t.completed_at || t.updated_at || t.created_at || '').startsWith(todayStr)
-        );
-
-        setTodayCount(todayTasks.length);
-
-        let scoreSum = 0;
-        let scoreCount = 0;
-        let timeSum = 0;
-
-        todayTasks.forEach((t: any) => {
-          const result = t.result;
-          if (result?.detection_scores) {
-            const s = result.detection_scores;
-            const avg = (s.zerogpt + s.gptzero + s.copyleaks) / 3;
-            scoreSum += avg;
-            scoreCount += 1;
-          }
-          if (result?.processing_time) {
-            timeSum += result.processing_time;
-          }
-        });
-
-        setAvgScore(scoreCount ? scoreSum / scoreCount : 0);
-        setAvgTime(todayTasks.length ? timeSum / todayTasks.length : 0);
-      } catch (e) {
-        console.error('获取统计信息失败:', e);
-      }
-    };
-
-    fetchStats();
-  }, [getTasks]);
-
   const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || TextProcessor;
 
   return (
@@ -98,51 +50,6 @@ export function Dashboard() {
           <p className="text-lg text-[var(--stone-500)] max-w-2xl leading-relaxed text-pretty">
             {t('hero.description')}
           </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
-          <div className="card card-hover stat-card animate-fade-in-up delay-100 opacity-0" style={{ animationFillMode: 'forwards' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--coral-50)] to-[var(--coral-100)] flex items-center justify-center">
-                <Zap className="w-6 h-6 text-[var(--coral-500)]" />
-              </div>
-              <span className="badge badge-coral">{t('stats.today')}</span>
-            </div>
-            <div className="stat-value tabular-nums !text-3xl">
-              {todayCount}
-              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">{t('stats.times')}</span>
-            </div>
-            <p className="stat-label !text-sm !mt-1">{t('stats.processCount')}</p>
-          </div>
-
-          <div className="card card-hover stat-card animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--teal-50)] to-[var(--teal-100)] flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-[var(--teal-500)]" />
-              </div>
-              <span className="badge badge-teal">{t('stats.average')}</span>
-            </div>
-            <div className="stat-value tabular-nums !text-3xl">
-              {(avgScore * 100).toFixed(1)}
-              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">%</span>
-            </div>
-            <p className="stat-label !text-sm !mt-1">{t('stats.aiScore')}</p>
-          </div>
-
-          <div className="card card-hover stat-card animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-purple-500" />
-              </div>
-              <span className="badge badge-gray">{t('stats.efficiency')}</span>
-            </div>
-            <div className="stat-value tabular-nums !text-3xl">
-              {avgTime.toFixed(1)}
-              <span className="text-lg font-normal text-[var(--stone-400)] ml-1">{t('stats.seconds')}</span>
-            </div>
-            <p className="stat-label !text-sm !mt-1">{t('stats.avgTime')}</p>
-          </div>
         </div>
 
         {/* Tab Navigation */}
