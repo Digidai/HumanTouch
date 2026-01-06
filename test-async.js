@@ -13,21 +13,21 @@ async function testAsyncSystem() {
   );
   console.log('任务ID:', taskId1);
 
-  const taskId2 = taskQueue.addTask(
-    '第二个测试文本，验证批量任务处理。',
-    { rounds: 1, style: 'academic' }
-  );
+  const taskId2 = taskQueue.addTask('第二个测试文本，验证批量任务处理。', {
+    rounds: 1,
+    style: 'academic',
+  });
   console.log('任务ID:', taskId2);
 
   // 等待任务处理
   console.log('\n2. 等待任务处理...');
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   // 测试2: 检查任务状态
   console.log('\n3. 检查任务状态...');
   const task1 = taskQueue.getTask(taskId1);
   const task2 = taskQueue.getTask(taskId2);
-  
+
   console.log('任务1状态:', task1?.status);
   console.log('任务2状态:', task2?.status);
 
@@ -38,9 +38,9 @@ async function testAsyncSystem() {
 
   // 测试4: 缓存机制
   console.log('\n5. 测试缓存机制...');
-  const cacheKey = JSON.stringify({
+  const _cacheKey = JSON.stringify({
     text: '这是一个测试文本，用于验证异步任务系统。',
-    options: { rounds: 2, style: 'casual' }
+    options: { rounds: 2, style: 'casual' },
   });
   console.log('缓存状态:', '已启用');
 
