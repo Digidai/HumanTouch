@@ -50,101 +50,106 @@ export function BatchProcessor() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
-    const validFiles = uploadedFiles.filter(file => {
+    const validFiles = uploadedFiles.filter((file) => {
       const extension = file.name.split('.').pop()?.toLowerCase();
       return extension === 'txt' || extension === 'md';
     });
-    
-    setFiles(prev => [...prev, ...validFiles]);
-    
+
+    setFiles((prev) => [...prev, ...validFiles]);
+
     // 创建任务记录
-    const newTasks = validFiles.map(file => ({
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    const newTasks = validFiles.map((file) => ({
+      id: `${Date.now()}-${crypto.randomUUID().substring(0, 8)}`,
       filename: file.name,
       status: 'pending' as const,
       progress: 0,
     }));
-    
-    setTasks(prev => [...prev, ...newTasks]);
+
+    setTasks((prev) => [...prev, ...newTasks]);
   };
 
   const handleDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDragOver(false);
-    
+
     const droppedFiles = Array.from(event.dataTransfer.files);
-    const validFiles = droppedFiles.filter(file => {
+    const validFiles = droppedFiles.filter((file) => {
       const extension = file.name.split('.').pop()?.toLowerCase();
       return extension === 'txt' || extension === 'md';
     });
-    
-    setFiles(prev => [...prev, ...validFiles]);
-    
-    const newTasks = validFiles.map(file => ({
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+
+    setFiles((prev) => [...prev, ...validFiles]);
+
+    const newTasks = validFiles.map((file) => ({
+      id: `${Date.now()}-${crypto.randomUUID().substring(0, 8)}`,
       filename: file.name,
       status: 'pending' as const,
       progress: 0,
     }));
-    
-    setTasks(prev => [...prev, ...newTasks]);
+
+    setTasks((prev) => [...prev, ...newTasks]);
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-    setTasks(prev => prev.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setTasks((prev) => prev.filter((_, i) => i !== index));
   };
 
   const processBatch = async () => {
     if (files.length === 0) return;
-    
+
     const fileContents = await Promise.all(
-      files.map(async file => {
+      files.map(async (file) => {
         const content = await file.text();
         return { filename: file.name, content };
       })
     );
-    
+
     try {
-      setTasks(prev => prev.map(task => ({ ...task, status: 'processing' as const, progress: 50 })));
-      
+      setTasks((prev) =>
+        prev.map((task) => ({ ...task, status: 'processing' as const, progress: 50 }))
+      );
+
       const response = await batchProcess({
-        texts: fileContents.map(f => f.content),
+        texts: fileContents.map((f) => f.content),
         options,
-        filenames: fileContents.map(f => f.filename),
+        filenames: fileContents.map((f) => f.filename),
       });
-      
-      setTasks(prev => prev.map((task, index) => ({
-        ...task,
-        status: 'completed' as const,
-        progress: 100,
-        result: response.results[index],
-      })));
-      
+
+      setTasks((prev) =>
+        prev.map((task, index) => ({
+          ...task,
+          status: 'completed' as const,
+          progress: 100,
+          result: response.results[index],
+        }))
+      );
     } catch (err) {
       console.error('Batch processing failed:', err);
-      setTasks(prev => prev.map(task => ({
-        ...task,
-        status: 'failed' as const,
-        error: t('error.processingFailed'),
-      })));
+      setTasks((prev) =>
+        prev.map((task) => ({
+          ...task,
+          status: 'failed' as const,
+          error: t('error.processingFailed'),
+        }))
+      );
       setNotice(t('error.batchFailed'));
     }
   };
 
   const downloadResults = () => {
-    const completedTasks = tasks.filter(task => task.status === 'completed' && task.result);
-    
-    const results = completedTasks.map(task => ({
+    const completedTasks = tasks.filter((task) => task.status === 'completed' && task.result);
+
+    const results = completedTasks.map((task) => ({
       filename: task.filename,
       processed_text: task.result?.processed_text,
       detection_scores: task.result?.detection_scores,
     }));
-    
+
     const blob = new Blob([JSON.stringify(results, null, 2)], {
       type: 'application/json',
     });
-    
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -156,14 +161,14 @@ export function BatchProcessor() {
   };
 
   const downloadProcessedFiles = () => {
-    const completedTasks = tasks.filter(task => task.status === 'completed' && task.result);
-    
-    completedTasks.forEach(task => {
+    const completedTasks = tasks.filter((task) => task.status === 'completed' && task.result);
+
+    completedTasks.forEach((task) => {
       if (task.result?.processed_text) {
         const blob = new Blob([task.result.processed_text], {
           type: 'text/plain;charset=utf-8',
         });
-        
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -178,30 +183,36 @@ export function BatchProcessor() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return '⏳';
-      case 'processing': return '⚡';
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      default: return '❓';
+      case 'pending':
+        return '⏳';
+      case 'processing':
+        return '⚡';
+      case 'completed':
+        return '✅';
+      case 'failed':
+        return '❌';
+      default:
+        return '❓';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'text-[var(--stone-500)]';
-      case 'processing': return 'text-[var(--coral-600)]';
-      case 'completed': return 'text-[var(--teal-600)]';
-      case 'failed': return 'text-red-600';
-      default: return 'text-[var(--stone-500)]';
+      case 'pending':
+        return 'text-[var(--stone-500)]';
+      case 'processing':
+        return 'text-[var(--coral-600)]';
+      case 'completed':
+        return 'text-[var(--teal-600)]';
+      case 'failed':
+        return 'text-red-600';
+      default:
+        return 'text-[var(--stone-500)]';
     }
   };
 
   return (
-    <Card
-      title={t('title')}
-      description={t('description')}
-      icon={<Upload className="w-5 h-5" />}
-    >
+    <Card title={t('title')} description={t('description')} icon={<Upload className="w-5 h-5" />}>
       <div className="space-y-8">
         {/* File Upload Area */}
         <div className="space-y-4">
@@ -245,10 +256,18 @@ export function BatchProcessor() {
               <table className="min-w-full divide-y divide-[var(--stone-200)]">
                 <thead className="bg-[var(--stone-50)]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.filename')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.status')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.size')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">{t('table.actions')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">
+                      {t('table.filename')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">
+                      {t('table.status')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">
+                      {t('table.size')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--stone-500)] uppercase tracking-wider">
+                      {t('table.actions')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-[var(--stone-100)]">
@@ -261,7 +280,9 @@ export function BatchProcessor() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`inline-flex items-center ${getStatusColor(tasks[index]?.status || 'pending')}`}>
+                        <span
+                          className={`inline-flex items-center ${getStatusColor(tasks[index]?.status || 'pending')}`}
+                        >
                           {getStatusIcon(tasks[index]?.status || 'pending')}
                           <span className="ml-1">{tCommon(tasks[index]?.status || 'pending')}</span>
                         </span>
@@ -290,7 +311,12 @@ export function BatchProcessor() {
           <Select
             label={tProcessor('options.style')}
             value={options.style}
-            onChange={(e) => setOptions({ ...options, style: e.target.value as 'casual' | 'academic' | 'professional' | 'creative' })}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                style: e.target.value as 'casual' | 'academic' | 'professional' | 'creative',
+              })
+            }
             options={styleOptions}
             disabled={loading}
           />
@@ -313,7 +339,9 @@ export function BatchProcessor() {
             max={1}
             step={0.01}
             value={options.target_score}
-            onChange={(e) => setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })}
+            onChange={(e) =>
+              setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })
+            }
             helperText={tProcessor('options.targetScoreHint')}
             disabled={loading}
             leftIcon={<Target className="w-4 h-4" />}
@@ -346,7 +374,7 @@ export function BatchProcessor() {
           <div className="space-x-2">
             <Button
               onClick={downloadResults}
-              disabled={!tasks.some(task => task.status === 'completed')}
+              disabled={!tasks.some((task) => task.status === 'completed')}
               className="flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
@@ -355,7 +383,7 @@ export function BatchProcessor() {
 
             <Button
               onClick={downloadProcessedFiles}
-              disabled={!tasks.some(task => task.status === 'completed')}
+              disabled={!tasks.some((task) => task.status === 'completed')}
               variant="ghost"
               className="flex items-center space-x-2"
             >

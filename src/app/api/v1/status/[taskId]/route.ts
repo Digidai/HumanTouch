@@ -3,13 +3,14 @@ import { publicTaskQueue, privateTaskQueue } from '@/lib/taskqueue';
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ApiResponse } from '@/types/api';
+import { generateRequestId } from '@/lib/env';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
   const taskId = (await params).taskId;
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -83,10 +84,9 @@ export async function GET(
     };
 
     return NextResponse.json(response, { status: 200 });
-
   } catch (error) {
     console.error('Error getting task status:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -111,7 +111,7 @@ export async function DELETE(
   { params }: { params: Promise<{ taskId: string }> }
 ) {
   const taskId = (await params).taskId;
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -181,10 +181,9 @@ export async function DELETE(
     };
 
     return NextResponse.json(response, { status: 200 });
-
   } catch (error) {
     console.error('Error deleting task:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -204,25 +203,35 @@ export async function DELETE(
   }
 }
 
-function calculateProgress(task: { started_at?: string; text?: string; options?: { rounds?: number } }): number {
+function calculateProgress(task: {
+  started_at?: string;
+  text?: string;
+  options?: { rounds?: number };
+}): number {
   // 简单的进度计算，可以根据实际需求优化
   if (!task.started_at) return 0;
-  
+
   const startTime = new Date(task.started_at).getTime();
   const now = Date.now();
-  const estimatedDuration = Math.max(30, Math.ceil((task.text || '').length / 1000) * (task.options?.rounds || 3));
-  
+  const estimatedDuration = Math.max(
+    30,
+    Math.ceil((task.text || '').length / 1000) * (task.options?.rounds || 3)
+  );
+
   const progress = Math.min(95, ((now - startTime) / 1000 / estimatedDuration) * 100);
   return Math.round(progress);
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'GET, DELETE, OPTIONS',
-      'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        Allow: 'GET, DELETE, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     }
-  });
+  );
 }

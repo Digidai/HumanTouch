@@ -3,9 +3,10 @@ import { publicTaskQueue, privateTaskQueue } from '@/lib/taskqueue';
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ApiResponse } from '@/types/api';
+import { generateRequestId } from '@/lib/env';
 
 export async function GET(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -19,7 +20,10 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(request.url);
     const statusParam = url.searchParams.get('status');
-    const statusFilter = statusParam && ['pending', 'processing', 'completed', 'failed'].includes(statusParam) ? statusParam as 'pending' | 'processing' | 'completed' | 'failed' : null;
+    const statusFilter =
+      statusParam && ['pending', 'processing', 'completed', 'failed'].includes(statusParam)
+        ? (statusParam as 'pending' | 'processing' | 'completed' | 'failed')
+        : null;
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
@@ -28,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     // 应用状态过滤
     if (statusFilter && ['pending', 'processing', 'completed', 'failed'].includes(statusFilter)) {
-      tasks = tasks.filter(task => task.status === statusFilter);
+      tasks = tasks.filter((task) => task.status === statusFilter);
     }
 
     // 应用分页
@@ -38,7 +42,7 @@ export async function GET(request: NextRequest) {
     const response: ApiResponse = {
       success: true,
       data: {
-        tasks: paginatedTasks.map(task => ({
+        tasks: paginatedTasks.map((task) => ({
           task_id: task.id,
           status: task.status,
           created_at: task.created_at,
@@ -63,10 +67,9 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-
   } catch (error) {
     console.error('Error getting tasks:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -123,10 +126,9 @@ export async function DELETE(request: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-
   } catch (error) {
     console.error('Error cleaning tasks:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -147,12 +149,15 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'GET, DELETE, OPTIONS',
-      'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        Allow: 'GET, DELETE, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     }
-  });
+  );
 }

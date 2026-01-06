@@ -3,10 +3,11 @@ import { getLLMClient, LLMClient } from '@/lib/llm-client';
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { BatchRequest, BatchResponse, ApiResponse } from '@/types/api';
+import { generateRequestId } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     const accessMode = context?.mode || 'public';
 
     const body: BatchRequest = await request.json();
-    
+
     // 验证请求参数
     if (!body.texts || !Array.isArray(body.texts)) {
       return NextResponse.json(
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     const texts = body.texts;
     const maxTexts = 10; // 每批最多处理10个文本
     const maxLengthPerText = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
-    
+
     if (texts.length > maxTexts) {
       return NextResponse.json(
         {
@@ -151,10 +152,9 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-
   } catch (error) {
     console.error('Error processing batch:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -175,32 +175,38 @@ export async function POST(request: NextRequest) {
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'POST, OPTIONS',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        Allow: 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     }
-  });
-} 
+  );
+}
 
 // 支持GET请求查看批量处理状态
 export async function GET() {
-  const requestId = Math.random().toString(36).substring(2, 15);
-  
-  return NextResponse.json({
-    success: true,
-    data: {
-      max_batch_size: 10,
-      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
-      supported_styles: ['academic', 'casual', 'professional', 'creative'],
-      default_rounds: 2,
-    },
-    meta: {
-      request_id: requestId,
-      timestamp: new Date().toISOString(),
-      api_version: 'v1',
-    },
-  } as ApiResponse, { status: 200 });
+  const requestId = generateRequestId();
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        max_batch_size: 10,
+        max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
+        supported_styles: ['academic', 'casual', 'professional', 'creative'],
+        default_rounds: 2,
+      },
+      meta: {
+        request_id: requestId,
+        timestamp: new Date().toISOString(),
+        api_version: 'v1',
+      },
+    } as ApiResponse,
+    { status: 200 }
+  );
 }

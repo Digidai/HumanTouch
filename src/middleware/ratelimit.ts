@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateRequestId } from '@/lib/env';
 
 interface RateLimitConfig {
   requestsPerWindow: number;
@@ -21,16 +22,19 @@ export class RateLimiter {
   private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(config: RateLimitConfig) {
-    this.config = Object.assign({
-      requestsPerWindow: 100,
-      windowMs: 60000, // 1 minute
-      keyGenerator: (req: NextRequest) => {
-        // Use IP address as default key
-        const forwarded = req.headers.get('x-forwarded-for');
-        const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
-        return ip;
-      }
-    }, config);
+    this.config = Object.assign(
+      {
+        requestsPerWindow: 100,
+        windowMs: 60000, // 1 minute
+        keyGenerator: (req: NextRequest) => {
+          // Use IP address as default key
+          const forwarded = req.headers.get('x-forwarded-for');
+          const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
+          return ip;
+        },
+      },
+      config
+    );
 
     // 启动定时清理
     this.startAutoCleanup();
@@ -47,7 +51,9 @@ export class RateLimiter {
     }
   }
 
-  async check(request: NextRequest): Promise<{ allowed: boolean; resetTime: number; limit: number; remaining: number }> {
+  async check(
+    request: NextRequest
+  ): Promise<{ allowed: boolean; resetTime: number; limit: number; remaining: number }> {
     const key = this.config.keyGenerator!(request);
     const now = Date.now();
 
@@ -95,8 +101,7 @@ export class RateLimiter {
 
   private forceCleanupOldest(count: number): void {
     // 按重置时间排序，清理即将过期的条目
-    const entries = Object.entries(this.store)
-      .sort((a, b) => a[1].resetTime - b[1].resetTime);
+    const entries = Object.entries(this.store).sort((a, b) => a[1].resetTime - b[1].resetTime);
 
     for (let i = 0; i < Math.min(count, entries.length); i++) {
       delete this.store[entries[i][0]];
@@ -119,7 +124,7 @@ const defaultRateLimiter = new RateLimiter({
 export function createRateLimitMiddleware(limiter = defaultRateLimiter) {
   return async (request: NextRequest) => {
     const result = await limiter.check(request);
-    
+
     if (!result.allowed) {
       return NextResponse.json(
         {
@@ -130,7 +135,7 @@ export function createRateLimitMiddleware(limiter = defaultRateLimiter) {
             details: `每分钟最多${result.limit}次请求`,
           },
           meta: {
-            request_id: Math.random().toString(36).substring(2, 15),
+            request_id: generateRequestId(),
             timestamp: new Date().toISOString(),
             api_version: 'v1',
           },

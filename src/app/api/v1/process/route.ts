@@ -4,6 +4,7 @@ import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse, ApiResponse } from '@/types/api';
 import { corsHeaders } from '@/lib/cors';
+import { generateRequestId } from '@/lib/env';
 
 // Vercel Serverless Function 配置
 export const maxDuration = 300; // 5分钟超时，支持长文多轮处理
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     const accessMode = context?.mode || 'public';
 
     const body: ProcessRequest = await request.json();
-    
+
     // 验证请求参数
     if (!body.text) {
       return NextResponse.json(
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const text = body.text;
     const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
-    
+
     if (text.length > maxLength) {
       return NextResponse.json(
         {
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
       targetScore: body.options?.target_score,
       model,
     });
-    
+
     // 获取真实检测分数
     const detectionScores = result.detectionScores;
 
@@ -137,7 +138,6 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: corsHeaders,
     });
-
   } catch (error) {
     console.error('Error processing text:', error);
 
@@ -160,11 +160,19 @@ export async function POST(request: NextRequest) {
       code = 'RATE_LIMIT';
       message = 'API 调用次数超限，请稍后再试';
       status = 429;
-    } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT') || errorMessage.includes('LLM API timeout')) {
+    } else if (
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('ETIMEDOUT') ||
+      errorMessage.includes('LLM API timeout')
+    ) {
       code = 'TIMEOUT';
       message = '请求超时，请稍后重试';
       status = 504;
-    } else if (errorMessage.includes('网络错误') || errorMessage.includes('fetch failed') || errorMessage.includes('fetch')) {
+    } else if (
+      errorMessage.includes('网络错误') ||
+      errorMessage.includes('fetch failed') ||
+      errorMessage.includes('fetch')
+    ) {
       code = 'NETWORK_ERROR';
       message = 'LLM 服务网络连接失败，请稍后重试';
       status = 503;

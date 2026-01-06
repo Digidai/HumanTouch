@@ -3,10 +3,11 @@ import { detectorClient } from '@/lib/detectors';
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ValidateRequest, ValidateResponse, ApiResponse } from '@/types/api';
+import { generateRequestId } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (authResponse) return authResponse;
 
     const body: ValidateRequest = await request.json();
-    
+
     // 验证请求参数
     if (!body.text) {
       return NextResponse.json(
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const text = body.text;
     const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
-    
+
     if (text.length > maxLength) {
       return NextResponse.json(
         {
@@ -62,8 +63,9 @@ export async function POST(request: NextRequest) {
     }
 
     const allowedDetectors = ['zerogpt', 'gptzero', 'copyleaks'] as const;
-    const detectors = (body.detectors && body.detectors.length > 0 ? body.detectors : allowedDetectors)
-      .filter(detector => allowedDetectors.includes(detector));
+    const detectors = (
+      body.detectors && body.detectors.length > 0 ? body.detectors : allowedDetectors
+    ).filter((detector) => allowedDetectors.includes(detector));
 
     if (detectors.length === 0) {
       return NextResponse.json(
@@ -83,25 +85,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // 检测文本
     const detectionScores: { [key: string]: number } = {};
-    
+
     if (detectors.includes('zerogpt')) {
       detectionScores.zerogpt = await detectorClient.detectWithZeroGPT(text);
     }
-    
+
     if (detectors.includes('gptzero')) {
       detectionScores.gptzero = await detectorClient.detectWithGPTZero(text);
     }
-    
+
     if (detectors.includes('copyleaks')) {
       detectionScores.copyleaks = await detectorClient.detectWithCopyleaks(text);
     }
 
     // 计算总体评分
     const summary = await detectorClient.getOverallScore(detectionScores);
-    
+
     const processingTime = (Date.now() - startTime) / 1000;
 
     const response: ApiResponse<ValidateResponse> = {
@@ -120,10 +122,9 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-
   } catch (error) {
     console.error('Error validating text:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -144,35 +145,36 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const requestId = Math.random().toString(36).substring(2, 15);
-  
-  return NextResponse.json({
-    success: true,
-    data: {
-      supported_detectors: ['zerogpt', 'gptzero', 'copyleaks'],
-      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
-      features: [
-        '实时AI检测',
-        '多检测器对比',
-        '置信度评分',
-        '详细分析报告'
-      ],
-    },
-    meta: {
-      request_id: requestId,
-      timestamp: new Date().toISOString(),
-      api_version: 'v1',
-    },
-  } as ApiResponse, { status: 200 });
+  const requestId = generateRequestId();
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        supported_detectors: ['zerogpt', 'gptzero', 'copyleaks'],
+        max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
+        features: ['实时AI检测', '多检测器对比', '置信度评分', '详细分析报告'],
+      },
+      meta: {
+        request_id: requestId,
+        timestamp: new Date().toISOString(),
+        api_version: 'v1',
+      },
+    } as ApiResponse,
+    { status: 200 }
+  );
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        Allow: 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     }
-  });
+  );
 }

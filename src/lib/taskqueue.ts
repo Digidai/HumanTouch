@@ -1,5 +1,6 @@
 import { isIP } from 'net';
 import { ProcessResponse } from '@/types/api';
+import { generateTaskId as generateSecureTaskId } from '@/lib/env';
 
 export interface Task {
   id: string;
@@ -24,7 +25,11 @@ export interface Task {
 const WEBHOOK_TIMEOUT_MS = 10000;
 const WEBHOOK_MAX_REDIRECTS = 3;
 
-export function validateWebhookUrl(rawUrl: string): { valid: boolean; normalized?: string; reason?: string } {
+export function validateWebhookUrl(rawUrl: string): {
+  valid: boolean;
+  normalized?: string;
+  reason?: string;
+} {
   const trimmed = rawUrl.trim();
   if (!trimmed) {
     return { valid: false, reason: 'Webhook URL 不能为空' };
@@ -65,7 +70,7 @@ function isPrivateHostname(hostname: string): boolean {
 
 function isPrivateIpv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(part => Number.isNaN(part))) return true;
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) return true;
   const [a, b] = parts;
 
   if (a === 10) return true;
@@ -169,7 +174,7 @@ export class TaskQueue {
   }
 
   private generateTaskId(): string {
-    return `task_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    return generateSecureTaskId();
   }
 
   private generateCacheKey(text: string, options: unknown, llmApiKey?: string): string {
@@ -177,23 +182,32 @@ export class TaskQueue {
     return Buffer.from(key).toString('base64');
   }
 
-  getCachedResult(text: string, options: Task['options'], llmApiKey?: string): ProcessResponse | null {
+  getCachedResult(
+    text: string,
+    options: Task['options'],
+    llmApiKey?: string
+  ): ProcessResponse | null {
     const cacheKey = this.generateCacheKey(text, options, llmApiKey);
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < TaskQueue.CACHE_TTL) {
       return cached.result;
     }
-    
+
     // 清理过期缓存
     if (cached && Date.now() - cached.timestamp >= TaskQueue.CACHE_TTL) {
       this.cache.delete(cacheKey);
     }
-    
+
     return null;
   }
 
-  setCachedResult(text: string, options: Task['options'], result: ProcessResponse, llmApiKey?: string): void {
+  setCachedResult(
+    text: string,
+    options: Task['options'],
+    result: ProcessResponse,
+    llmApiKey?: string
+  ): void {
     // 缓存容量检查
     if (this.cache.size >= TaskQueue.MAX_CACHE) {
       this.cleanupOldestCache(Math.floor(TaskQueue.MAX_CACHE * 0.2));
@@ -202,13 +216,14 @@ export class TaskQueue {
     const cacheKey = this.generateCacheKey(text, options, llmApiKey);
     this.cache.set(cacheKey, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   private cleanupOldestCache(count: number): void {
-    const entries = Array.from(this.cache.entries())
-      .sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const entries = Array.from(this.cache.entries()).sort(
+      (a, b) => a[1].timestamp - b[1].timestamp
+    );
 
     for (let i = 0; i < Math.min(count, entries.length); i++) {
       this.cache.delete(entries[i][0]);
@@ -221,7 +236,7 @@ export class TaskQueue {
     }
 
     const pendingTasks = Array.from(this.tasks.values())
-      .filter(task => task.status === 'pending')
+      .filter((task) => task.status === 'pending')
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     if (pendingTasks.length === 0) {
@@ -277,7 +292,7 @@ export class TaskQueue {
         targetScore: task.options.target_score,
         model: task.options.model,
       });
-      
+
       // 转换为ProcessResponse格式
       const result: ProcessResponse = {
         processed_text: processingResult.processedText,
@@ -285,12 +300,12 @@ export class TaskQueue {
         processed_length: processingResult.processedText.length,
         detection_scores: processingResult.detectionScores,
         processing_time: 0, // 这里可以计算实际处理时间
-        rounds_used: task.options.rounds || 3
+        rounds_used: task.options.rounds || 3,
       };
-      
+
       // 缓存结果
       this.setCachedResult(task.text, task.options, result, task.llmApiKey);
-      
+
       task.status = 'completed';
       task.result = result;
       task.completed_at = new Date().toISOString();
@@ -322,7 +337,9 @@ export class TaskQueue {
     try {
       const validation = validateWebhookUrl(task.webhook_url);
       if (!validation.valid || !validation.normalized) {
-        console.warn(`[TaskQueue] Invalid webhook URL for task ${task.id}: ${validation.reason || 'unknown reason'}`);
+        console.warn(
+          `[TaskQueue] Invalid webhook URL for task ${task.id}: ${validation.reason || 'unknown reason'}`
+        );
         return;
       }
 
@@ -342,10 +359,7 @@ export class TaskQueue {
 
       if (secret) {
         const crypto = await import('crypto');
-        const signature = crypto
-          .createHmac('sha256', secret)
-          .update(body)
-          .digest('hex');
+        const signature = crypto.createHmac('sha256', secret).update(body).digest('hex');
         headers['X-Humantouch-Signature'] = signature;
       }
 
@@ -355,7 +369,12 @@ export class TaskQueue {
     }
   }
 
-  private async postWithRetry(url: string, body: string, headers: Record<string, string>, retries = 2): Promise<void> {
+  private async postWithRetry(
+    url: string,
+    body: string,
+    headers: Record<string, string>,
+    retries = 2
+  ): Promise<void> {
     let attempt = 0;
     let lastError: Error | null = null;
     while (attempt <= retries) {
@@ -364,7 +383,8 @@ export class TaskQueue {
 
         if (!response.ok) {
           const error = new Error(`Webhook HTTP error: ${response.status}`);
-          (error as { retryable?: boolean }).retryable = response.status >= 500 || response.status === 429;
+          (error as { retryable?: boolean }).retryable =
+            response.status >= 500 || response.status === 429;
           throw error;
         }
 
@@ -377,7 +397,7 @@ export class TaskQueue {
         }
         attempt += 1;
         const delay = 500 * attempt;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
@@ -386,7 +406,11 @@ export class TaskQueue {
     }
   }
 
-  private async postOnce(url: string, body: string, headers: Record<string, string>): Promise<Response> {
+  private async postOnce(
+    url: string,
+    body: string,
+    headers: Record<string, string>
+  ): Promise<Response> {
     let currentUrl = url;
 
     for (let redirectCount = 0; redirectCount <= WEBHOOK_MAX_REDIRECTS; redirectCount++) {
@@ -415,7 +439,9 @@ export class TaskQueue {
         const nextUrl = new URL(location, currentUrl).toString();
         const validation = validateWebhookUrl(nextUrl);
         if (!validation.valid || !validation.normalized) {
-          const error = new Error(`Invalid webhook redirect URL: ${validation.reason || 'unknown reason'}`);
+          const error = new Error(
+            `Invalid webhook redirect URL: ${validation.reason || 'unknown reason'}`
+          );
           (error as { retryable?: boolean }).retryable = false;
           throw error;
         }
@@ -456,10 +482,10 @@ export class TaskQueue {
     const tasks = Array.from(this.tasks.values());
     return {
       total: tasks.length,
-      pending: tasks.filter(t => t.status === 'pending').length,
-      processing: tasks.filter(t => t.status === 'processing').length,
-      completed: tasks.filter(t => t.status === 'completed').length,
-      failed: tasks.filter(t => t.status === 'failed').length,
+      pending: tasks.filter((t) => t.status === 'pending').length,
+      processing: tasks.filter((t) => t.status === 'processing').length,
+      completed: tasks.filter((t) => t.status === 'completed').length,
+      failed: tasks.filter((t) => t.status === 'failed').length,
       ...this.getCacheStats(),
     };
   }
@@ -467,8 +493,10 @@ export class TaskQueue {
   cleanup(maxAge: number = 24 * 60 * 60 * 1000): void {
     const cutoff = Date.now() - maxAge;
     for (const [id, task] of this.tasks) {
-      if (new Date(task.created_at).getTime() < cutoff && 
-          (task.status === 'completed' || task.status === 'failed')) {
+      if (
+        new Date(task.created_at).getTime() < cutoff &&
+        (task.status === 'completed' || task.status === 'failed')
+      ) {
         this.tasks.delete(id);
       }
     }

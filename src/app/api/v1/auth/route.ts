@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { authManager } from '@/lib/auth';
 import { ApiResponse } from '@/types/api';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
+import { generateRequestId } from '@/lib/env';
 
 interface RegisterRequest {
   email: string;
@@ -19,7 +20,7 @@ const generateUserId = () => randomBytes(12).toString('hex');
 
 // 用户注册
 export async function POST(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -119,10 +120,9 @@ export async function POST(request: NextRequest) {
       } as ApiResponse,
       { status: 201 }
     );
-
   } catch (error) {
     console.error('Error registering user:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 
 // 用户登录
 export async function PATCH(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -204,10 +204,9 @@ export async function PATCH(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-
   } catch (error) {
     console.error('Error logging in user:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -228,12 +227,15 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'POST, PATCH, OPTIONS',
-      'Access-Control-Allow-Methods': 'POST, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        Allow: 'POST, PATCH, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
     }
-  });
+  );
 }

@@ -4,6 +4,7 @@ import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { ProcessRequest, ProcessResponse } from '@/types/api';
 import { corsHeaders } from '@/lib/cors';
+import { generateRequestId } from '@/lib/env';
 
 // Vercel Serverless Function 配置
 export const maxDuration = 300; // 5分钟超时
@@ -21,7 +22,7 @@ function formatSSE(event: SSEEvent): string {
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   // 创建 SSE 响应流
   const encoder = new TextEncoder();
@@ -57,8 +58,8 @@ export async function POST(request: NextRequest) {
     }
   };
 
-  // 异步处理逻辑
-  (async () => {
+  // 异步处理逻辑 - 使用 Promise catch 确保错误被记录
+  const processAsync = async () => {
     try {
       // 应用限流中间件
       const rateLimitResult = await rateLimitMiddleware(request);
@@ -191,14 +192,24 @@ export async function POST(request: NextRequest) {
       });
       closeStream();
     }
-  })();
+  };
+
+  // 启动异步处理，确保未捕获的错误被记录
+  processAsync().catch((err) => {
+    console.error('[Stream] Unhandled async error:', err);
+    sendEvent({
+      type: 'error',
+      data: { code: 'INTERNAL_ERROR', message: '处理过程中发生未知错误' },
+    });
+    closeStream();
+  });
 
   return new Response(stream, {
     headers: {
       ...corsHeaders,
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'X-Request-Id': requestId,
     },
   });

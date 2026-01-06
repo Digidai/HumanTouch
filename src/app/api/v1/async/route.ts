@@ -3,9 +3,10 @@ import { publicTaskQueue, privateTaskQueue, validateWebhookUrl } from '@/lib/tas
 import { resolveAccess } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/middleware/ratelimit';
 import { AsyncTaskRequest, ApiResponse } from '@/types/api';
+import { generateRequestId } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(2, 15);
+  const requestId = generateRequestId();
 
   try {
     // 应用限流中间件
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     const accessMode = context?.mode || 'public';
 
     const body: AsyncTaskRequest = await request.json();
-    
+
     // 验证请求参数
     if (!body.text) {
       return NextResponse.json(
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const text = body.text;
     const maxLength = parseInt(process.env.MAX_TEXT_LENGTH || '30000');
-    
+
     if (text.length > maxLength) {
       return NextResponse.json(
         {
@@ -147,10 +148,9 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 202 });
-
   } catch (error) {
     console.error('Error creating async task:', error);
-    
+
     return NextResponse.json(
       {
         success: false,
@@ -171,33 +171,39 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const requestId = Math.random().toString(36).substring(2, 15);
-  
-  return NextResponse.json({
-    success: true,
-    data: {
-      max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
-      supported_styles: ['academic', 'casual', 'professional', 'creative'],
-      default_rounds: 3,
-      max_concurrent_tasks: 3,
-      webhook_support: true,
-      polling_support: true,
-    },
-    meta: {
-      request_id: requestId,
-      timestamp: new Date().toISOString(),
-      api_version: 'v1',
-    },
-  } as ApiResponse, { status: 200 });
+  const requestId = generateRequestId();
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        max_text_length: parseInt(process.env.MAX_TEXT_LENGTH || '30000'),
+        supported_styles: ['academic', 'casual', 'professional', 'creative'],
+        default_rounds: 3,
+        max_concurrent_tasks: 3,
+        webhook_support: true,
+        polling_support: true,
+      },
+      meta: {
+        request_id: requestId,
+        timestamp: new Date().toISOString(),
+        api_version: 'v1',
+      },
+    } as ApiResponse,
+    { status: 200 }
+  );
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Allow': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        Allow: 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     }
-  });
+  );
 }

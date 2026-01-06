@@ -6,6 +6,7 @@ import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useApi } from '@/lib/api-client';
+import { TaskListItem } from '@/types/api';
 
 interface Task {
   id: string;
@@ -45,7 +46,7 @@ export function TaskMonitor() {
   const fetchTasks = useCallback(async () => {
     try {
       const response = await getTasks({ limit: 50 });
-      const normalized = (response.tasks || []).map((task: any) => ({
+      const normalized = (response.tasks || []).map((task: TaskListItem) => ({
         ...task,
         id: task.task_id,
       }));
@@ -55,27 +56,30 @@ export function TaskMonitor() {
     }
   }, [getTasks]);
 
-  const refreshTaskStatus = useCallback(async (taskId: string) => {
-    try {
-      const response = await getTaskStatus(taskId);
-      const updatedTask = {
-        ...response,
-        id: response.task_id || taskId,
-        status: response.status as Task['status']
-      };
+  const refreshTaskStatus = useCallback(
+    async (taskId: string) => {
+      try {
+        const response = await getTaskStatus(taskId);
+        const updatedTask = {
+          ...response,
+          id: response.task_id || taskId,
+          status: response.status as Task['status'],
+        };
 
-      setTasks(prev => prev.map(task =>
-        task.id === taskId ? { ...task, ...updatedTask } : task
-      ));
+        setTasks((prev) =>
+          prev.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
+        );
 
-      // Update selectedTask if it matches
-      if (selectedTaskRef.current?.id === taskId) {
-        setSelectedTask(updatedTask);
+        // Update selectedTask if it matches
+        if (selectedTaskRef.current?.id === taskId) {
+          setSelectedTask(updatedTask);
+        }
+      } catch (err) {
+        console.error('Failed to fetch task status:', err);
       }
-    } catch (err) {
-      console.error('Failed to fetch task status:', err);
-    }
-  }, [getTaskStatus]);
+    },
+    [getTaskStatus]
+  );
 
   // Initial fetch and polling setup
   useEffect(() => {
@@ -138,9 +142,7 @@ export function TaskMonitor() {
       <div className="space-y-6">
         {/* Control Bar */}
         <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            {t('taskCount', { count: tasks.length })}
-          </div>
+          <div className="text-sm text-gray-600">{t('taskCount', { count: tasks.length })}</div>
           <Button
             onClick={fetchTasks}
             disabled={loading}
@@ -189,7 +191,9 @@ export function TaskMonitor() {
                         {task.id.substring(0, 8)}...
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
+                        >
                           {getStatusIcon(task.status)}
                           <span className="ml-1">{tCommon(task.status)}</span>
                         </span>
@@ -227,9 +231,7 @@ export function TaskMonitor() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-              <p className="text-sm text-red-800">
-                {error.message || t('error.fetchFailed')}
-              </p>
+              <p className="text-sm text-red-800">{error.message || t('error.fetchFailed')}</p>
             </div>
           </div>
         )}
@@ -256,7 +258,9 @@ export function TaskMonitor() {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-700">{t('detail.status')}</h4>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTask.status)}`}>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTask.status)}`}
+                    >
                       {getStatusIcon(selectedTask.status)}
                       <span className="ml-1">{tCommon(selectedTask.status)}</span>
                     </span>
@@ -284,16 +288,39 @@ export function TaskMonitor() {
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <h4 className="font-medium mb-2">{t('detail.aiScores')}</h4>
                         <div className="space-y-1 text-sm">
-                          <div>ZeroGPT: {((selectedTask.result?.detection_scores?.zerogpt ?? 0) * 100).toFixed(1)}%</div>
-                          <div>GPTZero: {((selectedTask.result?.detection_scores?.gptzero ?? 0) * 100).toFixed(1)}%</div>
-                          <div>Copyleaks: {((selectedTask.result?.detection_scores?.copyleaks ?? 0) * 100).toFixed(1)}%</div>
+                          <div>
+                            ZeroGPT:{' '}
+                            {((selectedTask.result?.detection_scores?.zerogpt ?? 0) * 100).toFixed(
+                              1
+                            )}
+                            %
+                          </div>
+                          <div>
+                            GPTZero:{' '}
+                            {((selectedTask.result?.detection_scores?.gptzero ?? 0) * 100).toFixed(
+                              1
+                            )}
+                            %
+                          </div>
+                          <div>
+                            Copyleaks:{' '}
+                            {(
+                              (selectedTask.result?.detection_scores?.copyleaks ?? 0) * 100
+                            ).toFixed(1)}
+                            %
+                          </div>
                         </div>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <h4 className="font-medium mb-2">{t('detail.processingInfo')}</h4>
                         <div className="space-y-1 text-sm">
-                          <div>{t('detail.processingTime')}: {(selectedTask.result.processing_time || 0).toFixed(2)}s</div>
-                          <div>{t('detail.roundsUsed')}: {selectedTask.result.rounds_used || 0}</div>
+                          <div>
+                            {t('detail.processingTime')}:{' '}
+                            {(selectedTask.result.processing_time || 0).toFixed(2)}s
+                          </div>
+                          <div>
+                            {t('detail.roundsUsed')}: {selectedTask.result.rounds_used || 0}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -302,7 +329,9 @@ export function TaskMonitor() {
                       <div>
                         <h4 className="font-medium mb-2">{t('detail.processedText')}</h4>
                         <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-                          <pre className="text-sm whitespace-pre-wrap font-sans">{selectedTask.result.processed_text}</pre>
+                          <pre className="text-sm whitespace-pre-wrap font-sans">
+                            {selectedTask.result.processed_text}
+                          </pre>
                         </div>
                       </div>
                     )}

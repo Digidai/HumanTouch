@@ -1,5 +1,15 @@
 import { useState, useCallback, createContext, useContext, ReactNode, useEffect } from 'react';
-import { ProcessRequest, ProcessResponse, BatchRequest, BatchResponse, AsyncTaskResponse, TaskStatusResponse, ValidateRequest, ValidateResponse, TaskListResponse } from '@/types/api';
+import {
+  ProcessRequest,
+  ProcessResponse,
+  BatchRequest,
+  BatchResponse,
+  AsyncTaskResponse,
+  TaskStatusResponse,
+  ValidateRequest,
+  ValidateResponse,
+  TaskListResponse,
+} from '@/types/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
@@ -18,111 +28,134 @@ export function useApi(options: UseApiOptions = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const makeRequest = useCallback(async (
-    endpoint: string,
-    method: string = 'GET',
-    data?: Record<string, unknown> | ProcessRequest | BatchRequest | ValidateRequest
-  ) => {
-    setLoading(true);
-    setError(null);
+  const makeRequest = useCallback(
+    async (
+      endpoint: string,
+      method: string = 'GET',
+      data?: Record<string, unknown> | ProcessRequest | BatchRequest | ValidateRequest
+    ) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (options.apiKey) {
-        headers['Authorization'] = `Bearer ${options.apiKey}`;
-      }
-
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        method,
-        headers,
-        body: data ? JSON.stringify(data) : undefined,
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        const errPayload = result.error || {};
-        const apiError: ApiError = {
-          code: errPayload.code || 'UNKNOWN_ERROR',
-          message: errPayload.message || '请求失败',
-          details: errPayload.details,
-          httpStatus: response.status,
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
         };
+
+        if (options.apiKey) {
+          headers['Authorization'] = `Bearer ${options.apiKey}`;
+        }
+
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          method,
+          headers,
+          body: data ? JSON.stringify(data) : undefined,
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          const errPayload = result.error || {};
+          const apiError: ApiError = {
+            code: errPayload.code || 'UNKNOWN_ERROR',
+            message: errPayload.message || '请求失败',
+            details: errPayload.details,
+            httpStatus: response.status,
+          };
+          throw apiError;
+        }
+
+        return result.data;
+      } catch (err) {
+        let apiError: ApiError;
+
+        // 类型守卫：检查是否为 ApiError 类型
+        const isApiError = (e: unknown): e is ApiError =>
+          typeof e === 'object' &&
+          e !== null &&
+          'code' in e &&
+          typeof (e as ApiError).code === 'string';
+
+        if (isApiError(err)) {
+          apiError = {
+            code: err.code || 'UNKNOWN_ERROR',
+            message: err.message || '请求失败',
+            details: err.details,
+            httpStatus: err.httpStatus,
+          };
+        } else if (err instanceof TypeError && err.message.includes('fetch')) {
+          apiError = {
+            code: 'NETWORK_ERROR',
+            message: '无法连接到服务器',
+            details: '请检查网络连接后重试',
+          };
+        } else {
+          apiError = {
+            code: 'REQUEST_ERROR',
+            message: err instanceof Error ? err.message : '请求失败',
+            details: err instanceof Error ? err.stack : String(err),
+          };
+        }
+
+        setError(apiError);
         throw apiError;
+      } finally {
+        setLoading(false);
       }
+    },
+    [options.apiKey]
+  );
 
-      return result.data;
-    } catch (err) {
-      let apiError: ApiError;
+  const processText = useCallback(
+    async (request: ProcessRequest) => {
+      return makeRequest('/process', 'POST', request) as Promise<ProcessResponse>;
+    },
+    [makeRequest]
+  );
 
-      if (err && typeof err === 'object' && 'code' in (err as any)) {
-        const e = err as any;
-        apiError = {
-          code: e.code || 'UNKNOWN_ERROR',
-          message: e.message || '请求失败',
-          details: e.details,
-          httpStatus: e.httpStatus,
-        };
-      } else if (err instanceof TypeError && err.message.includes('fetch')) {
-        apiError = {
-          code: 'NETWORK_ERROR',
-          message: '无法连接到服务器',
-          details: '请检查网络连接后重试',
-        };
-      } else {
-        apiError = {
-          code: 'REQUEST_ERROR',
-          message: err instanceof Error ? err.message : '请求失败',
-          details: err instanceof Error ? err.stack : String(err),
-        };
-      }
+  const batchProcess = useCallback(
+    async (request: BatchRequest) => {
+      return makeRequest('/batch', 'POST', request) as Promise<BatchResponse>;
+    },
+    [makeRequest]
+  );
 
-      setError(apiError);
-      throw apiError;
-    } finally {
-      setLoading(false);
-    }
-  }, [options.apiKey]);
+  const createAsyncTask = useCallback(
+    async (text: string, options?: Record<string, unknown>, apiKey?: string) => {
+      return makeRequest('/async', 'POST', {
+        text,
+        options,
+        ...(apiKey && { api_key: apiKey }),
+      }) as Promise<AsyncTaskResponse>;
+    },
+    [makeRequest]
+  );
 
-  const processText = useCallback(async (request: ProcessRequest) => {
-    return makeRequest('/process', 'POST', request) as Promise<ProcessResponse>;
-  }, [makeRequest]);
+  const getTaskStatus = useCallback(
+    async (taskId: string) => {
+      return makeRequest(`/status/${taskId}`) as Promise<TaskStatusResponse>;
+    },
+    [makeRequest]
+  );
 
-  const batchProcess = useCallback(async (request: BatchRequest) => {
-    return makeRequest('/batch', 'POST', request) as Promise<BatchResponse>;
-  }, [makeRequest]);
+  const getTasks = useCallback(
+    async (params?: { status?: string; limit?: number; offset?: number }) => {
+      const query = new URLSearchParams();
+      if (params?.status) query.append('status', params.status);
+      if (params?.limit) query.append('limit', params.limit.toString());
+      if (params?.offset) query.append('offset', params.offset.toString());
 
-  const createAsyncTask = useCallback(async (
-    text: string,
-    options?: Record<string, unknown>,
-    apiKey?: string
-  ) => {
-    return makeRequest('/async', 'POST', {
-      text,
-      options,
-      ...(apiKey && { api_key: apiKey }),
-    }) as Promise<AsyncTaskResponse>;
-  }, [makeRequest]);
+      return makeRequest(`/tasks?${query.toString()}`) as Promise<TaskListResponse>;
+    },
+    [makeRequest]
+  );
 
-  const getTaskStatus = useCallback(async (taskId: string) => {
-    return makeRequest(`/status/${taskId}`) as Promise<TaskStatusResponse>;
-  }, [makeRequest]);
-
-  const getTasks = useCallback(async (params?: { status?: string; limit?: number; offset?: number }) => {
-    const query = new URLSearchParams();
-    if (params?.status) query.append('status', params.status);
-    if (params?.limit) query.append('limit', params.limit.toString());
-    if (params?.offset) query.append('offset', params.offset.toString());
-    
-    return makeRequest(`/tasks?${query.toString()}`) as Promise<TaskListResponse>;
-  }, [makeRequest]);
-
-  const validateText = useCallback(async (request: ValidateRequest) => {
-    return makeRequest('/validate', 'POST', request) as Promise<ValidateResponse>;
-  }, [makeRequest]);
+  const validateText = useCallback(
+    async (request: ValidateRequest) => {
+      return makeRequest('/validate', 'POST', request) as Promise<ValidateResponse>;
+    },
+    [makeRequest]
+  );
 
   return {
     loading,
@@ -180,7 +213,9 @@ export function LlmSettingsProvider({ children }: { children: ReactNode }) {
   const isConfigured = Boolean(apiKey && model);
 
   return (
-    <LlmSettingsContext.Provider value={{ apiKey, model, saveSettings, clearSettings, isConfigured }}>
+    <LlmSettingsContext.Provider
+      value={{ apiKey, model, saveSettings, clearSettings, isConfigured }}
+    >
       {children}
     </LlmSettingsContext.Provider>
   );
@@ -253,112 +288,118 @@ export function useStreamProcess() {
   const [progress, setProgress] = useState<StreamProgress | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
 
-  const processTextStream = useCallback(async (
-    request: ProcessRequest,
-    options: UseStreamProcessOptions = {}
-  ): Promise<ProcessResponse | null> => {
-    setLoading(true);
-    setError(null);
-    setProgress(null);
+  const processTextStream = useCallback(
+    async (
+      request: ProcessRequest,
+      options: UseStreamProcessOptions = {}
+    ): Promise<ProcessResponse | null> => {
+      setLoading(true);
+      setError(null);
+      setProgress(null);
 
-    const controller = new AbortController();
-    setAbortController(controller);
+      const controller = new AbortController();
+      setAbortController(controller);
 
-    try {
-      const response = await fetch(`${API_BASE}/process/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
+      try {
+        const response = await fetch(`${API_BASE}/process/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No response body');
+        }
 
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let result: ProcessResponse | null = null;
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result: ProcessResponse | null = null;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+          buffer += decoder.decode(value, { stream: true });
 
-        // 解析 SSE 事件
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+          // 解析 SSE 事件
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-        let eventType = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            eventType = line.slice(7);
-          } else if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
+          let eventType = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7);
+            } else if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
 
-              if (eventType === 'progress') {
-                setProgress(data);
-                options.onProgress?.(data);
-              } else if (eventType === 'result') {
-                result = data;
-                options.onComplete?.(data);
-              } else if (eventType === 'error') {
-                const apiError: ApiError = {
-                  code: data.code,
-                  message: data.message,
-                  details: data.details,
-                };
-                setError(apiError);
-                options.onError?.(apiError);
-                throw apiError;
+                if (eventType === 'progress') {
+                  setProgress(data);
+                  options.onProgress?.(data);
+                } else if (eventType === 'result') {
+                  result = data;
+                  options.onComplete?.(data);
+                } else if (eventType === 'error') {
+                  const apiError: ApiError = {
+                    code: data.code,
+                    message: data.message,
+                    details: data.details,
+                  };
+                  setError(apiError);
+                  options.onError?.(apiError);
+                  throw apiError;
+                }
+              } catch (parseError) {
+                console.error('SSE parse error:', parseError, 'line:', line);
               }
-            } catch (parseError) {
-              console.error('SSE parse error:', parseError, 'line:', line);
             }
           }
         }
-      }
 
-      return result;
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') {
-        return null;
-      }
+        return result;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') {
+          return null;
+        }
 
-      let apiError: ApiError;
-      if (err && typeof err === 'object' && 'code' in (err as ApiError)) {
-        apiError = err as ApiError;
-      } else if (err instanceof TypeError && (err.message.includes('fetch') || err.message.includes('Failed to fetch'))) {
-        apiError = {
-          code: 'NETWORK_ERROR',
-          message: '无法连接到服务器',
-          details: '请检查网络连接后重试',
-        };
-      } else {
-        apiError = {
-          code: 'REQUEST_ERROR',
-          message: err instanceof Error ? err.message : '请求失败',
-          details: err instanceof Error ? err.message : undefined,
-        };
-      }
+        let apiError: ApiError;
+        if (err && typeof err === 'object' && 'code' in (err as ApiError)) {
+          apiError = err as ApiError;
+        } else if (
+          err instanceof TypeError &&
+          (err.message.includes('fetch') || err.message.includes('Failed to fetch'))
+        ) {
+          apiError = {
+            code: 'NETWORK_ERROR',
+            message: '无法连接到服务器',
+            details: '请检查网络连接后重试',
+          };
+        } else {
+          apiError = {
+            code: 'REQUEST_ERROR',
+            message: err instanceof Error ? err.message : '请求失败',
+            details: err instanceof Error ? err.message : undefined,
+          };
+        }
 
-      setError(apiError);
-      options.onError?.(apiError);
-      throw apiError;
-    } finally {
-      setLoading(false);
-      setAbortController(null);
-    }
-  }, []);
+        setError(apiError);
+        options.onError?.(apiError);
+        throw apiError;
+      } finally {
+        setLoading(false);
+        setAbortController(null);
+      }
+    },
+    []
+  );
 
   const abort = useCallback(() => {
     abortController?.abort();

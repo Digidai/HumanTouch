@@ -14,7 +14,10 @@ function getAllowedOrigins(): string[] {
     // 生产环境未配置时，只允许同源请求
     return [];
   }
-  return origins.split(',').map(o => o.trim()).filter(Boolean);
+  return origins
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 }
 
 export function getCorsOrigin(requestOrigin?: string | null): string {
@@ -39,12 +42,45 @@ export function getCorsOrigin(requestOrigin?: string | null): string {
   return allowedOrigins[0];
 }
 
+/**
+ * 安全相关的 HTTP 响应头
+ * 防止常见的 Web 安全漏洞
+ */
+export const securityHeaders: Record<string, string> = {
+  // 防止 MIME 类型嗅探攻击
+  'X-Content-Type-Options': 'nosniff',
+  // 防止点击劫持
+  'X-Frame-Options': 'DENY',
+  // 启用浏览器的 XSS 过滤器
+  'X-XSS-Protection': '1; mode=block',
+  // 控制 Referrer 信息的发送
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  // 限制页面可以加载的资源来源
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
+  // 限制浏览器功能的使用
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+};
+
+/**
+ * 生产环境额外的安全头
+ */
+export const productionSecurityHeaders: Record<string, string> = {
+  // 强制 HTTPS（仅在生产环境启用）
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+};
+
 export function getCorsHeaders(requestOrigin?: string | null): Record<string, string> {
   const origin = getCorsOrigin(requestOrigin);
+  const isProd = process.env.NODE_ENV === 'production';
 
   const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    // 添加安全头
+    ...securityHeaders,
+    // 生产环境添加额外安全头
+    ...(isProd ? productionSecurityHeaders : {}),
   };
 
   if (origin) {
