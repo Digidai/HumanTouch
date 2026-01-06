@@ -28,13 +28,19 @@ export class AuthManager {
 
   constructor() {
     this.isDev = process.env.NODE_ENV !== 'production';
+    // NEXT_PHASE 在构建时为 'phase-production-build'
+    const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      if (this.isDev) {
-        // 开发环境生成随机密钥，每次重启不同，避免硬编码安全风险
+      if (this.isDev || isBuildTime) {
+        // 开发环境或构建时生成随机密钥
         const devSecret = randomBytes(32).toString('hex');
-        console.warn('[AuthManager] JWT_SECRET not set. Generated random dev secret (will change on restart).');
+        if (!isBuildTime) {
+          console.warn(
+            '[AuthManager] JWT_SECRET not set. Generated random dev secret (will change on restart).'
+          );
+        }
         this.jwtSecret = devSecret;
       } else {
         throw new Error('[AuthManager] JWT_SECRET must be set in production environment');
@@ -42,7 +48,9 @@ export class AuthManager {
     } else {
       // 验证密钥长度
       if (secret.length < 32) {
-        console.warn('[AuthManager] JWT_SECRET is shorter than 32 characters. Consider using a stronger secret.');
+        console.warn(
+          '[AuthManager] JWT_SECRET is shorter than 32 characters. Consider using a stronger secret.'
+        );
       }
       this.jwtSecret = secret;
     }
@@ -83,10 +91,10 @@ export class AuthManager {
 
   generateJwtToken(user: AuthUser): string {
     return jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        permissions: user.permissions 
+      {
+        id: user.id,
+        email: user.email,
+        permissions: user.permissions,
       },
       this.jwtSecret,
       { expiresIn: '7d' }
@@ -112,10 +120,15 @@ export class AuthManager {
 
     if (!allowed) {
       if (this.isDev) {
-        console.warn('[AuthManager] ALLOWED_API_KEYS not configured. Falling back to signed API key validation in development.');
+        console.warn(
+          '[AuthManager] ALLOWED_API_KEYS not configured. Falling back to signed API key validation in development.'
+        );
       }
     } else {
-      const allowedKeys = allowed.split(',').map(k => k.trim()).filter(Boolean);
+      const allowedKeys = allowed
+        .split(',')
+        .map((k) => k.trim())
+        .filter(Boolean);
       if (allowedKeys.includes(apiKey)) {
         return {
           valid: true,
@@ -202,8 +215,9 @@ export function resolveAccess(
 
   const apiKeyValidation = authManager.validateApiKey(token);
   if (apiKeyValidation.valid) {
-    const hasPermission = requiredPermissions.length === 0 ||
-      requiredPermissions.some(perm => apiKeyValidation.permissions?.includes(perm));
+    const hasPermission =
+      requiredPermissions.length === 0 ||
+      requiredPermissions.some((perm) => apiKeyValidation.permissions?.includes(perm));
 
     if (!hasPermission) {
       return {
@@ -225,8 +239,9 @@ export function resolveAccess(
 
   const user = authManager.verifyJwtToken(token);
   if (user) {
-    const hasPermission = requiredPermissions.length === 0 ||
-      requiredPermissions.some(perm => user.permissions.includes(perm));
+    const hasPermission =
+      requiredPermissions.length === 0 ||
+      requiredPermissions.some((perm) => user.permissions.includes(perm));
 
     if (!hasPermission) {
       return {
