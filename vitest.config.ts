@@ -9,12 +9,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/**',
-        'src/**/*.d.ts',
-        'workers/**',
-        'sdk/**',
-      ],
+      exclude: ['node_modules/**', 'src/**/*.d.ts', 'workers/**', 'sdk/**'],
+    },
+    css: false,
+  },
+  css: {
+    postcss: {
+      plugins: [],
     },
   },
   resolve: {

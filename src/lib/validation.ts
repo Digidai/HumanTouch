@@ -69,9 +69,17 @@ export function validateProcessTextInput(input: unknown): ValidationResult<Proce
       // 验证 rounds
       if (options.rounds !== undefined) {
         if (typeof options.rounds !== 'number' || !Number.isInteger(options.rounds)) {
-          errors.push({ field: 'options.rounds', code: 'INVALID_TYPE', message: 'rounds 必须是整数' });
+          errors.push({
+            field: 'options.rounds',
+            code: 'INVALID_TYPE',
+            message: 'rounds 必须是整数',
+          });
         } else if (options.rounds < 1 || options.rounds > 10) {
-          errors.push({ field: 'options.rounds', code: 'OUT_OF_RANGE', message: 'rounds 必须在 1-10 之间' });
+          errors.push({
+            field: 'options.rounds',
+            code: 'OUT_OF_RANGE',
+            message: 'rounds 必须在 1-10 之间',
+          });
         }
       }
 
@@ -79,7 +87,11 @@ export function validateProcessTextInput(input: unknown): ValidationResult<Proce
       if (options.style !== undefined) {
         const validStyles = ['casual', 'academic', 'professional', 'creative'];
         if (typeof options.style !== 'string') {
-          errors.push({ field: 'options.style', code: 'INVALID_TYPE', message: 'style 必须是字符串' });
+          errors.push({
+            field: 'options.style',
+            code: 'INVALID_TYPE',
+            message: 'style 必须是字符串',
+          });
         } else if (!validStyles.includes(options.style)) {
           errors.push({
             field: 'options.style',
@@ -92,15 +104,27 @@ export function validateProcessTextInput(input: unknown): ValidationResult<Proce
       // 验证 target_score
       if (options.target_score !== undefined) {
         if (typeof options.target_score !== 'number') {
-          errors.push({ field: 'options.target_score', code: 'INVALID_TYPE', message: 'target_score 必须是数字' });
-        } else if (options.target_score < 0 || options.target_score > 100) {
-          errors.push({ field: 'options.target_score', code: 'OUT_OF_RANGE', message: 'target_score 必须在 0-100 之间' });
+          errors.push({
+            field: 'options.target_score',
+            code: 'INVALID_TYPE',
+            message: 'target_score 必须是数字',
+          });
+        } else if (options.target_score < 0 || options.target_score > 1) {
+          errors.push({
+            field: 'options.target_score',
+            code: 'OUT_OF_RANGE',
+            message: 'target_score 必须在 0-1 之间',
+          });
         }
       }
 
       // 验证 model
       if (options.model !== undefined && typeof options.model !== 'string') {
-        errors.push({ field: 'options.model', code: 'INVALID_TYPE', message: 'model 必须是字符串' });
+        errors.push({
+          field: 'options.model',
+          code: 'INVALID_TYPE',
+          message: 'model 必须是字符串',
+        });
       }
     }
   }

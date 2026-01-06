@@ -26,7 +26,12 @@ import { useApi, useLlmSettings, useStreamProcess, StreamProgress } from '@/lib/
 export function TextProcessor() {
   const t = useTranslations('processor');
   const { createAsyncTask, error: asyncError } = useApi();
-  const { processTextStream, loading, error: streamError, progress: streamProgress } = useStreamProcess();
+  const {
+    processTextStream,
+    loading,
+    error: streamError,
+    progress: streamProgress,
+  } = useStreamProcess();
   const { apiKey: llmApiKey, model: llmModel, isConfigured } = useLlmSettings();
 
   // 合并错误状态
@@ -45,9 +50,9 @@ export function TextProcessor() {
     style: 'casual' as 'casual' | 'academic' | 'professional' | 'creative',
     target_score: 0.1,
   });
-  const [result, setResult] = useState<
-    ProcessResponse | { task_id: string; mode: 'async' } | null
-  >(null);
+  const [result, setResult] = useState<ProcessResponse | { task_id: string; mode: 'async' } | null>(
+    null
+  );
   const [mode, setMode] = useState<'sync' | 'async'>('sync');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -85,9 +90,7 @@ export function TextProcessor() {
       setResult(null);
 
       // Build request with optional custom LLM settings
-      const requestOptions = isConfigured
-        ? { ...options, model: llmModel! }
-        : options;
+      const requestOptions = isConfigured ? { ...options, model: llmModel! } : options;
 
       if (mode === 'sync') {
         // 使用 SSE 流式处理获取真实进度
@@ -127,11 +130,7 @@ export function TextProcessor() {
   };
 
   return (
-    <Card
-      title={t('title')}
-      description={t('description')}
-      icon={<Sparkles className="w-5 h-5" />}
-    >
+    <Card title={t('title')} description={t('description')} icon={<Sparkles className="w-5 h-5" />}>
       <div className="space-y-8">
         {/* Text Input Area */}
         <div className="space-y-3">
@@ -187,9 +186,10 @@ export function TextProcessor() {
             max={1}
             step={0.01}
             value={options.target_score}
-            onChange={(e) =>
-              setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })
-            }
+            onChange={(e) => {
+              const nextValue = parseFloat(e.target.value);
+              setOptions({ ...options, target_score: Number.isNaN(nextValue) ? 0.1 : nextValue });
+            }}
             helperText={t('options.targetScoreHint')}
             disabled={loading}
             leftIcon={<Target className="w-4 h-4" />}
@@ -281,8 +281,12 @@ export function TextProcessor() {
                     <Loader2 className="w-5 h-5 text-[var(--coral-600)] animate-spin" />
                   </div>
                   <div>
-                    <p className="font-medium text-[var(--stone-800)]">{t('progress.processing')}</p>
-                    <p className="text-sm text-[var(--stone-500)]">{getProgressStageText(streamProgress)}</p>
+                    <p className="font-medium text-[var(--stone-800)]">
+                      {t('progress.processing')}
+                    </p>
+                    <p className="text-sm text-[var(--stone-500)]">
+                      {getProgressStageText(streamProgress)}
+                    </p>
                   </div>
                 </div>
                 <span className="text-2xl font-display font-bold text-[var(--coral-600)]">
@@ -305,29 +309,46 @@ export function TextProcessor() {
 
               {/* Stage Indicators - 根据实际轮次动态显示 */}
               <div className="flex justify-between mt-4 text-xs text-[var(--stone-400)]">
-                <span className={streamProgress?.stage === 'analyzing' || progress > 5 ? 'text-[var(--coral-500)]' : ''}>
+                <span
+                  className={
+                    streamProgress?.stage === 'analyzing' || progress > 5
+                      ? 'text-[var(--coral-500)]'
+                      : ''
+                  }
+                >
                   {t('progress.stages.analyze')}
                 </span>
                 {Array.from({ length: options.rounds }, (_, i) => (
                   <span
                     key={i}
                     className={
-                      streamProgress?.stage === 'round' && streamProgress.round && streamProgress.round > i
+                      streamProgress?.stage === 'round' &&
+                      streamProgress.round &&
+                      streamProgress.round > i
                         ? 'text-[var(--coral-500)]'
                         : streamProgress?.stage === 'round' && streamProgress.round === i + 1
-                        ? 'text-[var(--coral-500)] font-medium'
-                        : streamProgress?.stage === 'detecting' || streamProgress?.stage === 'completed'
-                        ? 'text-[var(--coral-500)]'
-                        : ''
+                          ? 'text-[var(--coral-500)] font-medium'
+                          : streamProgress?.stage === 'detecting' ||
+                              streamProgress?.stage === 'completed'
+                            ? 'text-[var(--coral-500)]'
+                            : ''
                     }
                   >
                     {t('progress.stages.roundN', { n: i + 1 })}
                   </span>
                 ))}
-                <span className={streamProgress?.stage === 'detecting' || streamProgress?.stage === 'completed' ? 'text-[var(--coral-500)]' : ''}>
+                <span
+                  className={
+                    streamProgress?.stage === 'detecting' || streamProgress?.stage === 'completed'
+                      ? 'text-[var(--coral-500)]'
+                      : ''
+                  }
+                >
                   {t('progress.stages.detect')}
                 </span>
-                <span className={streamProgress?.stage === 'completed' ? 'text-[var(--coral-500)]' : ''}>
+                <span
+                  className={streamProgress?.stage === 'completed' ? 'text-[var(--coral-500)]' : ''}
+                >
                   {t('progress.stages.done')}
                 </span>
               </div>
@@ -370,23 +391,34 @@ export function TextProcessor() {
                   <div className="card stat-card">
                     <p className="stat-label">ZeroGPT</p>
                     <p className="stat-value tabular-nums">
-                      {(((result as ProcessResponse).detection_scores?.zerogpt ?? 0) * 100).toFixed(1)}%
+                      {(((result as ProcessResponse).detection_scores?.zerogpt ?? 0) * 100).toFixed(
+                        1
+                      )}
+                      %
                     </p>
                   </div>
                   <div className="card stat-card">
                     <p className="stat-label">GPTZero</p>
                     <p className="stat-value tabular-nums">
-                      {(((result as ProcessResponse).detection_scores?.gptzero ?? 0) * 100).toFixed(1)}%
+                      {(((result as ProcessResponse).detection_scores?.gptzero ?? 0) * 100).toFixed(
+                        1
+                      )}
+                      %
                     </p>
                   </div>
                   <div className="card stat-card">
                     <p className="stat-label">Copyleaks</p>
                     <p className="stat-value tabular-nums">
-                      {(((result as ProcessResponse).detection_scores?.copyleaks ?? 0) * 100).toFixed(1)}%
+                      {(
+                        ((result as ProcessResponse).detection_scores?.copyleaks ?? 0) * 100
+                      ).toFixed(1)}
+                      %
                     </p>
                   </div>
                   <div className="card stat-card !bg-gradient-to-br !from-[var(--coral-50)] !to-[var(--coral-100)]">
-                    <p className="stat-label !text-[var(--coral-600)]">{t('results.processingTime')}</p>
+                    <p className="stat-label !text-[var(--coral-600)]">
+                      {t('results.processingTime')}
+                    </p>
                     <p className="stat-value tabular-nums !text-[var(--coral-700)]">
                       {(result as ProcessResponse).processing_time?.toFixed(2)}s
                     </p>
@@ -399,7 +431,8 @@ export function TextProcessor() {
                     <Sparkles className="w-4 h-4 text-[var(--coral-500)]" />
                     <span className="label !mb-0">{t('results.processedText')}</span>
                     <span className="badge badge-gray">
-                      {(result as ProcessResponse).original_length} → {(result as ProcessResponse).processed_length} {t('results.chars')}
+                      {(result as ProcessResponse).original_length} →{' '}
+                      {(result as ProcessResponse).processed_length} {t('results.chars')}
                     </span>
                   </div>
                   <p className="text-[var(--stone-700)] leading-relaxed whitespace-pre-wrap text-pretty">
@@ -414,9 +447,14 @@ export function TextProcessor() {
                     <Clock className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-[var(--teal-800)]">{t('results.asyncCreated')}</p>
+                    <p className="font-medium text-[var(--teal-800)]">
+                      {t('results.asyncCreated')}
+                    </p>
                     <p className="text-sm text-[var(--teal-600)]">
-                      {t('results.taskId')}: <code className="bg-white/50 px-2 py-0.5 rounded">{(result as { task_id: string }).task_id}</code>
+                      {t('results.taskId')}:{' '}
+                      <code className="bg-white/50 px-2 py-0.5 rounded">
+                        {(result as { task_id: string }).task_id}
+                      </code>
                     </p>
                   </div>
                 </div>
@@ -432,9 +470,7 @@ export function TextProcessor() {
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="font-medium text-red-800">{t('error.title')}</p>
-                <p className="text-sm text-red-600 mt-1">
-                  {error.message || t('error.message')}
-                </p>
+                <p className="text-sm text-red-600 mt-1">{error.message || t('error.message')}</p>
                 {error.details && (
                   <details className="mt-2">
                     <summary className="text-xs text-red-500 cursor-pointer hover:text-red-700">
@@ -449,7 +485,6 @@ export function TextProcessor() {
             </div>
           </div>
         )}
-
       </div>
     </Card>
   );

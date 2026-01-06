@@ -54,19 +54,19 @@ interface ProcessingResult {
 
 // 进度回调类型
 export type ProgressStage =
-  | 'analyzing'      // 分析文本
-  | 'round'          // 改写轮次
-  | 'detecting'      // AI 检测
-  | 'completed';     // 完成
+  | 'analyzing' // 分析文本
+  | 'round' // 改写轮次
+  | 'detecting' // AI 检测
+  | 'completed'; // 完成
 
 export interface ProgressInfo {
   stage: ProgressStage;
-  progress: number;         // 0-100
+  progress: number; // 0-100
   message: string;
-  round?: number;           // 当前轮次
-  totalRounds?: number;     // 总轮次
-  chunk?: number;           // 当前分段（长文）
-  totalChunks?: number;     // 总分段数（长文）
+  round?: number; // 当前轮次
+  totalRounds?: number; // 总轮次
+  chunk?: number; // 当前分段（长文）
+  totalChunks?: number; // 总分段数（长文）
 }
 
 export type ProgressCallback = (info: ProgressInfo) => void;
@@ -80,7 +80,7 @@ export class LLMClient {
   constructor(config?: LLMConfig) {
     // 确定提供商
     this.provider = config?.provider || this.detectProvider();
-    
+
     // 获取 API Key
     this.apiKey = config?.apiKey || this.getApiKey();
     if (!this.apiKey) {
@@ -126,28 +126,31 @@ export class LLMClient {
   }
 
   // 长文分段阈值（字符数）- 提高以支持更长的文本
-  private static readonly CHUNK_THRESHOLD = 15000;  // 15k 字符触发分段
-  private static readonly MAX_CHUNK_SIZE = 20000;   // 单段最大 20k 字符
+  private static readonly CHUNK_THRESHOLD = 15000; // 15k 字符触发分段
+  private static readonly MAX_CHUNK_SIZE = 20000; // 单段最大 20k 字符
 
   // Token 限制
-  private static readonly MAX_TOKENS = 30000;       // 提高到 30k tokens
-  private static readonly MIN_TOKENS = 4000;        // 最小 4k tokens
+  private static readonly MAX_TOKENS = 30000; // 提高到 30k tokens
+  private static readonly MIN_TOKENS = 4000; // 最小 4k tokens
 
   // 重试配置 - 增强稳定性
-  private static readonly MAX_RETRIES = 5;          // 增加到 5 次重试
-  private static readonly RETRY_BASE_DELAY = 2000;  // 2秒起始延迟
+  private static readonly MAX_RETRIES = 5; // 增加到 5 次重试
+  private static readonly RETRY_BASE_DELAY = 2000; // 2秒起始延迟
   private static readonly LONG_TEXT_TIMEOUT = 300000; // 长文超时 5 分钟
-  private static readonly DEFAULT_TIMEOUT = 120000;   // 默认超时 2 分钟
+  private static readonly DEFAULT_TIMEOUT = 120000; // 默认超时 2 分钟
 
-  async processText(text: string, options: {
-    rounds?: number;
-    targetScore?: number;
-    style?: string;
-    model?: string; // 允许单次请求覆盖模型
-    onProgress?: ProgressCallback;
-  } = {}): Promise<ProcessingResult> {
+  async processText(
+    text: string,
+    options: {
+      rounds?: number;
+      targetScore?: number;
+      style?: string;
+      model?: string; // 允许单次请求覆盖模型
+      onProgress?: ProgressCallback;
+    } = {}
+  ): Promise<ProcessingResult> {
     const rounds = options.rounds || 3;
-    const targetScore = options.targetScore || 0.1;
+    const targetScore = options.targetScore ?? 0.1;
     const style = options.style || 'casual';
     const model = options.model || this.model;
     const onProgress = options.onProgress;
@@ -171,9 +174,9 @@ export class LLMClient {
   // 自适应轮次策略 - 根据检测结果选择最有效的下一轮策略
   private static readonly ADAPTIVE_STRATEGY: Record<string, number[]> = {
     // 如果 zerogpt 分数最高，说明需要更多词汇变化和困惑度
-    zerogpt_high: [3, 4, 6],  // 词汇多样化 → 思维痕迹 → 极限处理
+    zerogpt_high: [3, 4, 6], // 词汇多样化 → 思维痕迹 → 极限处理
     // 如果 gptzero 分数最高，说明突发性和句法需要改进
-    gptzero_high: [2, 4, 5],  // 句法重组 → 思维痕迹 → 深度打磨
+    gptzero_high: [2, 4, 5], // 句法重组 → 思维痕迹 → 深度打磨
     // 如果 copyleaks 分数最高，说明整体模式需要打破
     copyleaks_high: [1, 2, 6], // AI模式消除 → 句法重组 → 极限处理
     // 默认渐进策略
@@ -181,13 +184,16 @@ export class LLMClient {
   };
 
   // 处理短文本（带重试机制和自适应策略）
-  private async processShortText(text: string, options: {
-    rounds: number;
-    targetScore: number;
-    style: string;
-    model: string;
-    onProgress?: ProgressCallback;
-  }): Promise<ProcessingResult> {
+  private async processShortText(
+    text: string,
+    options: {
+      rounds: number;
+      targetScore: number;
+      style: string;
+      model: string;
+      onProgress?: ProgressCallback;
+    }
+  ): Promise<ProcessingResult> {
     const { rounds, targetScore, style, model, onProgress } = options;
 
     let currentText = text;
@@ -202,7 +208,13 @@ export class LLMClient {
     const progressPerRound = (100 - 10) / rounds;
 
     for (let i = 0; i < rounds; i++) {
-      const instruction = this.getHumanizationInstruction(nextRound, style, targetScore, false, currentText);
+      const instruction = this.getHumanizationInstruction(
+        nextRound,
+        style,
+        targetScore,
+        false,
+        currentText
+      );
       usedRounds.push(nextRound);
 
       // 报告改写进度
@@ -303,18 +315,20 @@ export class LLMClient {
 
     // 如果策略中的轮次都用过了，使用默认渐进
     const defaultRound = Math.min(currentIteration, 6);
-    return usedRounds.includes(defaultRound) ?
-      (defaultRound % 6) + 1 : defaultRound;
+    return usedRounds.includes(defaultRound) ? (defaultRound % 6) + 1 : defaultRound;
   }
 
   // 处理长文本：分段处理后合并
-  private async processLongText(text: string, options: {
-    rounds: number;
-    targetScore: number;
-    style: string;
-    model: string;
-    onProgress?: ProgressCallback;
-  }): Promise<ProcessingResult> {
+  private async processLongText(
+    text: string,
+    options: {
+      rounds: number;
+      targetScore: number;
+      style: string;
+      model: string;
+      onProgress?: ProgressCallback;
+    }
+  ): Promise<ProcessingResult> {
     const { rounds, targetScore, style, model, onProgress } = options;
 
     // 按段落边界分割文本
@@ -350,7 +364,13 @@ export class LLMClient {
           totalChunks: chunks.length,
         });
 
-        const instruction = this.getHumanizationInstruction(round, style, targetScore, true, currentChunk);
+        const instruction = this.getHumanizationInstruction(
+          round,
+          style,
+          targetScore,
+          true,
+          currentChunk
+        );
         // 长文本分段使用带重试机制的 API 调用
         currentChunk = await this.chatWithRetry(currentChunk, instruction, model, true);
       }
@@ -439,11 +459,16 @@ export class LLMClient {
       chunks.push(currentChunk.trim());
     }
 
-    return chunks.filter(c => c.length > 0);
+    return chunks.filter((c) => c.length > 0);
   }
 
   // 带重试机制的单次 API 调用
-  private async chatWithRetry(text: string, instruction: string, model: string, isLongText: boolean = false): Promise<string> {
+  private async chatWithRetry(
+    text: string,
+    instruction: string,
+    model: string,
+    isLongText: boolean = false
+  ): Promise<string> {
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= LLMClient.MAX_RETRIES; attempt++) {
@@ -454,13 +479,18 @@ export class LLMClient {
         const isRetryable = this.isRetryableError(error);
 
         if (!isRetryable || attempt === LLMClient.MAX_RETRIES) {
-          console.error(`[LLMClient] 第 ${attempt} 次尝试失败（不可重试或已达最大重试次数）:`, lastError.message);
+          console.error(
+            `[LLMClient] 第 ${attempt} 次尝试失败（不可重试或已达最大重试次数）:`,
+            lastError.message
+          );
           throw lastError;
         }
 
         // 指数退避 + 随机抖动
         const delay = LLMClient.RETRY_BASE_DELAY * Math.pow(2, attempt - 1) + Math.random() * 1000;
-        console.log(`[LLMClient] 第 ${attempt} 次尝试失败，${Math.round(delay / 1000)}s 后重试: ${lastError.message}`);
+        console.log(
+          `[LLMClient] 第 ${attempt} 次尝试失败，${Math.round(delay / 1000)}s 后重试: ${lastError.message}`
+        );
         await this.sleep(delay);
       }
     }
@@ -494,10 +524,15 @@ export class LLMClient {
 
   // 辅助函数：延迟
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private async chat(text: string, instruction: string, model: string, isLongText: boolean = false): Promise<string> {
+  private async chat(
+    text: string,
+    instruction: string,
+    model: string,
+    isLongText: boolean = false
+  ): Promise<string> {
     // 根据输入长度动态调整 max_tokens，确保长文能完整处理
     // 中文约2字符/token，英文约4字符/token，取中间值
     const estimatedTokens = Math.ceil(text.length / 2.5);
@@ -518,7 +553,7 @@ export class LLMClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${this.apiKey}`,
       'HTTP-Referer': process.env.SITE_URL || 'https://humantouch.dev',
       'X-Title': 'HumanTouch',
     };
@@ -549,11 +584,15 @@ export class LLMClient {
       clearTimeout(timeoutId);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          throw new Error(`LLM API timeout (${this.provider}): 请求超时（${timeout / 1000}s），请稍后重试`);
+          throw new Error(
+            `LLM API timeout (${this.provider}): 请求超时（${timeout / 1000}s），请稍后重试`
+          );
         }
         // 改进 fetch failed 错误信息
         if (error.message === 'fetch failed' || error.message.includes('fetch')) {
-          throw new Error(`LLM API 网络错误 (${this.provider}): 无法连接到 ${this.baseUrl}，请检查网络或稍后重试`);
+          throw new Error(
+            `LLM API 网络错误 (${this.provider}): 无法连接到 ${this.baseUrl}，请检查网络或稍后重试`
+          );
         }
       }
       throw error;
@@ -564,27 +603,79 @@ export class LLMClient {
   private static readonly AI_PATTERNS = {
     // 中文 AI 典型表达
     zh: {
-      connectors: ['首先', '其次', '再次', '最后', '此外', '另外', '同时', '因此', '所以', '总之', '综上所述', '总而言之'],
-      fillers: ['需要注意的是', '值得一提的是', '重要的是', '关键在于', '不可忽视的是', '众所周知', '毫无疑问'],
+      connectors: [
+        '首先',
+        '其次',
+        '再次',
+        '最后',
+        '此外',
+        '另外',
+        '同时',
+        '因此',
+        '所以',
+        '总之',
+        '综上所述',
+        '总而言之',
+      ],
+      fillers: [
+        '需要注意的是',
+        '值得一提的是',
+        '重要的是',
+        '关键在于',
+        '不可忽视的是',
+        '众所周知',
+        '毫无疑问',
+      ],
       formal: ['进行', '实现', '开展', '推动', '促进', '加强', '提升', '优化', '完善', '深化'],
       templates: ['在...方面', '从...角度', '基于...', '针对...', '围绕...', '就...而言'],
     },
     // 英文 AI 典型表达
     en: {
-      connectors: ['firstly', 'secondly', 'thirdly', 'finally', 'moreover', 'furthermore', 'additionally', 'consequently', 'therefore', 'in conclusion'],
-      fillers: ['it is important to note', 'it is worth mentioning', 'it should be noted', 'it goes without saying', 'needless to say'],
-      formal: ['utilize', 'implement', 'facilitate', 'leverage', 'optimize', 'enhance', 'streamline'],
+      connectors: [
+        'firstly',
+        'secondly',
+        'thirdly',
+        'finally',
+        'moreover',
+        'furthermore',
+        'additionally',
+        'consequently',
+        'therefore',
+        'in conclusion',
+      ],
+      fillers: [
+        'it is important to note',
+        'it is worth mentioning',
+        'it should be noted',
+        'it goes without saying',
+        'needless to say',
+      ],
+      formal: [
+        'utilize',
+        'implement',
+        'facilitate',
+        'leverage',
+        'optimize',
+        'enhance',
+        'streamline',
+      ],
       templates: ['in terms of', 'with regard to', 'in the context of', 'from the perspective of'],
-    }
+    },
   };
 
   // 风格配置 - 针对不同写作风格的策略 (中英双语)
-  private static readonly STYLE_CONFIG: Record<string, Record<string, {
-    tone: string;
-    vocabulary: string;
-    structure: string;
-    personality: string;
-  }>> = {
+  private static readonly STYLE_CONFIG: Record<
+    string,
+    Record<
+      string,
+      {
+        tone: string;
+        vocabulary: string;
+        structure: string;
+        personality: string;
+      }
+    >
+  > = {
     zh: {
       casual: {
         tone: '轻松、随意、亲切',
@@ -656,13 +747,27 @@ export class LLMClient {
    * 3. 词汇多样性: AI重复模式多，需增加词汇变异
    * 4. 句法变异: AI结构统一，需改变句法模式
    */
-  private getHumanizationInstruction(round: number, style: string, targetScore: number, isChunk: boolean = false, inputText?: string): string {
+  private getHumanizationInstruction(
+    round: number,
+    style: string,
+    targetScore: number,
+    isChunk: boolean = false,
+    inputText?: string
+  ): string {
     // 检测语言，默认使用中文
     const lang = inputText ? this.detectLanguage(inputText) : 'zh';
-    const chunkNote = lang === 'zh'
-      ? (isChunk ? '\n\n【片段处理注意】这是长文的一个片段，保持内容连贯，不要添加开头语或结尾总结。' : '')
-      : (isChunk ? '\n\n[CHUNK NOTE] This is a segment of a longer text. Maintain continuity, do not add introductions or conclusions.' : '');
-    const styleConfig = LLMClient.STYLE_CONFIG[lang]?.[style] || LLMClient.STYLE_CONFIG[lang]?.casual || LLMClient.STYLE_CONFIG.zh.casual;
+    const chunkNote =
+      lang === 'zh'
+        ? isChunk
+          ? '\n\n【片段处理注意】这是长文的一个片段，保持内容连贯，不要添加开头语或结尾总结。'
+          : ''
+        : isChunk
+          ? '\n\n[CHUNK NOTE] This is a segment of a longer text. Maintain continuity, do not add introductions or conclusions.'
+          : '';
+    const styleConfig =
+      LLMClient.STYLE_CONFIG[lang]?.[style] ||
+      LLMClient.STYLE_CONFIG[lang]?.casual ||
+      LLMClient.STYLE_CONFIG.zh.casual;
 
     // 中文指令
     const instructionsZh: Record<number, string> = {

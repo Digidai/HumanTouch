@@ -62,9 +62,15 @@ function isPrivateHostname(hostname: string): boolean {
   if (!hostname) return true;
   if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true;
 
-  const ipType = isIP(hostname);
-  if (ipType === 4) return isPrivateIpv4(hostname);
-  if (ipType === 6) return isPrivateIpv6(hostname);
+  // URL.hostname 对 IPv6 地址会带方括号，如 [::1]，需要去除
+  let normalizedHostname = hostname;
+  if (hostname.startsWith('[') && hostname.endsWith(']')) {
+    normalizedHostname = hostname.slice(1, -1);
+  }
+
+  const ipType = isIP(normalizedHostname);
+  if (ipType === 4) return isPrivateIpv4(normalizedHostname);
+  if (ipType === 6) return isPrivateIpv6(normalizedHostname);
   return false;
 }
 
@@ -265,6 +271,7 @@ export class TaskQueue {
       if (task.webhook_url) {
         await this.sendWebhook(task);
       }
+      this.processNext();
       return;
     }
 
@@ -272,6 +279,7 @@ export class TaskQueue {
     task.status = 'processing';
     task.started_at = new Date().toISOString();
     task.updated_at = new Date().toISOString();
+    const processingStart = Date.now();
 
     try {
       let llmClient;
@@ -293,13 +301,15 @@ export class TaskQueue {
         model: task.options.model,
       });
 
+      const processingTime = (Date.now() - processingStart) / 1000;
+
       // 转换为ProcessResponse格式
       const result: ProcessResponse = {
         processed_text: processingResult.processedText,
         original_length: task.text.length,
         processed_length: processingResult.processedText.length,
         detection_scores: processingResult.detectionScores,
-        processing_time: 0, // 这里可以计算实际处理时间
+        processing_time: processingTime,
         rounds_used: task.options.rounds || 3,
       };
 

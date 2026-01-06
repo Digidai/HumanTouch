@@ -57,12 +57,18 @@ export class LLMClient {
   };
 
   // 风格配置 (中英双语)
-  private static readonly STYLE_CONFIG: Record<string, Record<string, {
-    tone: string;
-    vocabulary: string;
-    structure: string;
-    personality: string;
-  }>> = {
+  private static readonly STYLE_CONFIG: Record<
+    string,
+    Record<
+      string,
+      {
+        tone: string;
+        vocabulary: string;
+        structure: string;
+        personality: string;
+      }
+    >
+  > = {
     zh: {
       casual: {
         tone: '轻松、随意、亲切',
@@ -124,12 +130,17 @@ export class LLMClient {
     return ratio > 0.1 ? 'zh' : 'en';
   }
 
-  constructor(env: Env, overrides?: { apiKey?: string; model?: string; provider?: LLMProvider; baseUrl?: string }) {
-    const defaultProvider = overrides?.provider || (overrides?.apiKey ? 'openrouter' : this.detectProvider(env));
+  constructor(
+    env: Env,
+    overrides?: { apiKey?: string; model?: string; provider?: LLMProvider; baseUrl?: string }
+  ) {
+    const defaultProvider =
+      overrides?.provider || (overrides?.apiKey ? 'openrouter' : this.detectProvider(env));
     this.provider = defaultProvider;
     this.apiKey = overrides?.apiKey || this.getApiKey(env);
     this.model = overrides?.model || this.getDefaultModel(env);
-    this.baseUrl = overrides?.baseUrl || env.CUSTOM_LLM_BASE_URL || PROVIDER_CONFIG[this.provider].baseUrl;
+    this.baseUrl =
+      overrides?.baseUrl || env.CUSTOM_LLM_BASE_URL || PROVIDER_CONFIG[this.provider].baseUrl;
     this.detectorClient = new DetectorClient(env);
     this.siteUrl = env.SITE_URL || 'https://humantouch.dev';
 
@@ -152,19 +163,23 @@ export class LLMClient {
   }
 
   private getDefaultModel(env: Env): string {
-    if (this.provider === 'openrouter') return env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-preview';
+    if (this.provider === 'openrouter')
+      return env.OPENROUTER_MODEL || 'google/gemini-2.5-flash-preview';
     if (this.provider === 'moonshot') return env.MOONSHOT_MODEL || 'kimi-k2-0711-preview';
     return env.CUSTOM_LLM_MODEL || 'gpt-4';
   }
 
-  async processText(text: string, options: {
-    rounds?: number;
-    targetScore?: number;
-    style?: string;
-    model?: string;
-  } = {}): Promise<ProcessingResult> {
+  async processText(
+    text: string,
+    options: {
+      rounds?: number;
+      targetScore?: number;
+      style?: string;
+      model?: string;
+    } = {}
+  ): Promise<ProcessingResult> {
     const rounds = options.rounds || 3;
-    const targetScore = options.targetScore || 0.1;
+    const targetScore = options.targetScore ?? 0.1;
     const style = options.style || 'casual';
     const model = options.model || this.model;
 
@@ -176,12 +191,15 @@ export class LLMClient {
   }
 
   // 处理短文本（带自适应策略）
-  private async processShortText(text: string, options: {
-    rounds: number;
-    targetScore: number;
-    style: string;
-    model: string;
-  }): Promise<ProcessingResult> {
+  private async processShortText(
+    text: string,
+    options: {
+      rounds: number;
+      targetScore: number;
+      style: string;
+      model: string;
+    }
+  ): Promise<ProcessingResult> {
     const { rounds, targetScore, style, model } = options;
 
     let currentText = text;
@@ -214,7 +232,13 @@ export class LLMClient {
     }
 
     const finalScores = await this.detectorClient.detectAll(currentText);
-    return { processedText: currentText, detectionScores: finalScores, roundScores, model, provider: this.provider };
+    return {
+      processedText: currentText,
+      detectionScores: finalScores,
+      roundScores,
+      model,
+      provider: this.provider,
+    };
   }
 
   // 自适应策略选择
@@ -247,12 +271,15 @@ export class LLMClient {
   }
 
   // 处理长文本
-  private async processLongText(text: string, options: {
-    rounds: number;
-    targetScore: number;
-    style: string;
-    model: string;
-  }): Promise<ProcessingResult> {
+  private async processLongText(
+    text: string,
+    options: {
+      rounds: number;
+      targetScore: number;
+      style: string;
+      model: string;
+    }
+  ): Promise<ProcessingResult> {
     const { rounds, targetScore, style, model } = options;
 
     const chunks = this.splitTextIntoChunks(text);
@@ -323,7 +350,7 @@ export class LLMClient {
     }
 
     if (currentChunk) chunks.push(currentChunk.trim());
-    return chunks.filter(c => c.length > 0);
+    return chunks.filter((c) => c.length > 0);
   }
 
   // 带重试的 API 调用
@@ -369,7 +396,7 @@ export class LLMClient {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async chat(text: string, instruction: string, model: string): Promise<string> {
@@ -391,7 +418,7 @@ export class LLMClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${this.apiKey}`,
     };
 
     if (this.provider === 'openrouter') {
@@ -417,12 +444,26 @@ export class LLMClient {
   /**
    * 获取人性化指令 - 基于 AI 检测器原理的科学策略
    */
-  private getInstruction(round: number, style: string, targetScore: number, isChunk: boolean = false, inputText?: string): string {
+  private getInstruction(
+    round: number,
+    style: string,
+    targetScore: number,
+    isChunk: boolean = false,
+    inputText?: string
+  ): string {
     const lang = inputText ? this.detectLanguage(inputText) : 'zh';
-    const chunkNote = lang === 'zh'
-      ? (isChunk ? '\n\n【片段处理注意】这是长文的一个片段，保持内容连贯，不要添加开头语或结尾总结。' : '')
-      : (isChunk ? '\n\n[CHUNK NOTE] This is a segment of a longer text. Maintain continuity, do not add introductions or conclusions.' : '');
-    const styleConfig = LLMClient.STYLE_CONFIG[lang]?.[style] || LLMClient.STYLE_CONFIG[lang]?.casual || LLMClient.STYLE_CONFIG.zh.casual;
+    const chunkNote =
+      lang === 'zh'
+        ? isChunk
+          ? '\n\n【片段处理注意】这是长文的一个片段，保持内容连贯，不要添加开头语或结尾总结。'
+          : ''
+        : isChunk
+          ? '\n\n[CHUNK NOTE] This is a segment of a longer text. Maintain continuity, do not add introductions or conclusions.'
+          : '';
+    const styleConfig =
+      LLMClient.STYLE_CONFIG[lang]?.[style] ||
+      LLMClient.STYLE_CONFIG[lang]?.casual ||
+      LLMClient.STYLE_CONFIG.zh.casual;
 
     // 中文指令
     const instructionsZh: Record<number, string> = {

@@ -322,6 +322,7 @@ export function useStreamProcess() {
         const decoder = new TextDecoder();
         let buffer = '';
         let result: ProcessResponse | null = null;
+        let eventType = '';
 
         while (true) {
           const { done, value } = await reader.read();
@@ -333,13 +334,19 @@ export function useStreamProcess() {
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
-          let eventType = '';
           for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7);
-            } else if (line.startsWith('data: ')) {
+            const normalized = line.replace(/\r$/, '');
+            if (!normalized) {
+              eventType = '';
+              continue;
+            }
+
+            if (normalized.startsWith('event:')) {
+              eventType = normalized.slice(6).trim();
+            } else if (normalized.startsWith('data:')) {
               try {
-                const data = JSON.parse(line.slice(6));
+                const payload = normalized.slice(5);
+                const data = JSON.parse(payload.startsWith(' ') ? payload.slice(1) : payload);
 
                 if (eventType === 'progress') {
                   setProgress(data);

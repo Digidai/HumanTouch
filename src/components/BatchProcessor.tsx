@@ -339,9 +339,10 @@ export function BatchProcessor() {
             max={1}
             step={0.01}
             value={options.target_score}
-            onChange={(e) =>
-              setOptions({ ...options, target_score: parseFloat(e.target.value) || 0.1 })
-            }
+            onChange={(e) => {
+              const nextValue = parseFloat(e.target.value);
+              setOptions({ ...options, target_score: Number.isNaN(nextValue) ? 0.1 : nextValue });
+            }}
             helperText={tProcessor('options.targetScoreHint')}
             disabled={loading}
             leftIcon={<Target className="w-4 h-4" />}
