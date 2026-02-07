@@ -68,9 +68,9 @@ export function Header() {
               <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[var(--teal-500)] border-2 border-white" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-semibold text-[var(--stone-900)] tracking-tight">
+              <p className="font-display text-2xl font-semibold text-[var(--stone-900)] tracking-tight">
                 Human<span className="text-gradient">Touch</span>
-              </h1>
+              </p>
               <p className="text-sm text-[var(--stone-500)] font-light">
                 {t('tagline')}
               </p>
